@@ -11,6 +11,7 @@ import type {
   NotificationRecord,
   CommonAreaRecord,
 } from "./types";
+import { clearResidentDraft } from "./features/residentPrivacy";
 
 const API_URL = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 type Result<T> = { data: T };
@@ -35,13 +36,19 @@ type RepairInput = Pick<
       | "safetyAnswers"
       | "timezone"
     >
-  >;
+  > & { residentUserId?: string; residentOccupancyId?: string };
 type PropertyInput = Pick<
   PropertyRecord,
   "name" | "address" | "units" | "timezone"
 >;
 const revisions = new Map<string, number>();
-supabase?.auth.onAuthStateChange(() => revisions.clear());
+let draftAccountId: string | null = null;
+supabase?.auth.onAuthStateChange((event, session) => {
+  revisions.clear();
+  const nextAccountId = session?.user.id ?? null;
+  if (event === "SIGNED_OUT" || nextAccountId !== draftAccountId) clearResidentDraft();
+  draftAccountId = nextAccountId;
+});
 
 export function validateEvidence(file: File) {
   if (
@@ -98,6 +105,11 @@ function mutate<T>(id: string, action: string, payload?: object) {
 }
 
 export const api = {
+  // Reuse native assignments: a first report need not have an existing registered unit row.
+  residentContext: (signal?: AbortSignal) => request<Result<{ properties: { id: string; units: string[] }[] }>>("/api/mobile/context", { signal }),
+  linkResident: (id: string, payload: { residentUserId?: string; residentOccupancyId?: string }, revision: number) => request<Result<RequestDetail>>(`/api/requests/${encodeURIComponent(id)}/resident-link`, {
+    method: "POST", headers: { "If-Match": `"${revision}"` }, body: JSON.stringify(payload),
+  }),
   commonAreaIssues: (signal?: AbortSignal) => request<Result<CommonAreaRecord[]>>("/api/mobile/common-area-issues", { signal }),
   updateCommonAreaIssue: (id: string, payload: { status: "in_progress" | "resolved"; note: string; revision: number }) =>
     request<Result<CommonAreaRecord>>(`/api/mobile/common-area-issues/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(payload) }),

@@ -64,6 +64,7 @@ export const repairStages: {
 
 /** Keep policy in sync with the API's RepairAttentionHelper; neither text labels nor urgency grant permissions. */
 export function managerAction(request: RequestRecord): AttentionAction | null {
+  const quoteStatus = request.estimate?.status ?? request.quoteStatus;
   if (
     ![
       "submitted",
@@ -80,18 +81,18 @@ export function managerAction(request: RequestRecord): AttentionAction | null {
     return "acknowledge";
   if (request.vendorDecision === "pending") return null;
   if (request.vendorDecision === "accepted") {
-    if (request.estimate?.status === "submitted") return "review_quote";
+    if (quoteStatus === "submitted") return "review_quote";
     if (
-      request.estimate?.status === "approved" &&
+      quoteStatus === "approved" &&
       (!request.appointment || request.appointment.status === "cancelled")
     )
       return "schedule";
     return null;
   }
   if (
-    !request.estimate &&
+    !request.estimate && !quoteStatus &&
     (request.state === "acknowledged" ||
-      (request.state === "assigned" && !request.assignedVendorId) ||
+      (request.state === "assigned" && !request.assignedVendorId && !request.vendorAssigned) ||
       request.vendorDecision === "declined")
   )
     return "assign";
@@ -336,7 +337,7 @@ export function nextStep(request: RequestRecord): NextStep {
     return {
       owner: "Vendor",
       title:
-        request.estimate?.status === "changes_requested"
+        (request.estimate?.status ?? request.quoteStatus) === "changes_requested"
           ? "Revise the quote"
           : "Submit a quote",
       detail: "Work cannot start until its scope and quote are approved.",

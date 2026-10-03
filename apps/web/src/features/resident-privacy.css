@@ -1,0 +1,15 @@
+.surface.resident-access-panel { padding: 20px 24px; margin: 18px 0; }
+.resident-access-panel { min-width: 0; }
+.resident-access-panel p { color: var(--muted); line-height: 1.55; margin: 10px 0 16px; max-width: 82ch; }
+.resident-access-heading { display: flex; align-items: flex-start; gap: 12px; }
+.resident-access-heading > svg { flex-shrink: 0; color: var(--forest); margin-top: 2px; }
+.resident-access-heading > div { min-width: 0; }
+.resident-access-panel fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.resident-access-panel input { min-width: 0; }
+.resident-access-panel .resident-access-toggle { display: flex; align-items: center; gap: 10px; flex-direction: row; }
+.resident-access-toggle input { width: 20px; height: 20px; flex: 0 0 20px; accent-color: var(--forest); }
+@media (max-width: 600px) {
+  .surface.resident-access-panel { padding: 18px; }
+  .resident-access-panel .form-grid.two { grid-template-columns: minmax(0, 1fr); }
+  .resident-access-panel .drawer-actions { flex-wrap: wrap; }
+}

@@ -38,7 +38,7 @@ const en = {
   assigned: 'Your assigned buildings', privacy: 'Your permissions', residentPrivacy: 'Your assigned apartments and shared-area reports. No manager approval controls.',
   watchmanPrivacy: 'Confirmed vendor visits and shared-area reports in assigned buildings. No resident conversations, access notes or repair costs.',
   connection: 'Connection', unsupported: 'This account is not assigned a mobile role.', unsupportedHelp: 'Ask your manager to assign a resident or watchman account. Owners and vendors should use the web app.',
-  noAssignment: 'No building is assigned.', noAssignmentHelp: 'Ask your manager to assign your building and apartment. The app cannot grant itself permissions.',
+  noAssignment: 'No active building assignment.', noAssignmentHelp: 'Ask your manager to confirm your building assignment. Resident accounts also need a current, dated occupancy for their apartment; a unit label alone cannot grant access to private history.',
   offline: 'Changes require a connection. No background retries or offline submissions.', settingsHelp: 'Push notifications are not enabled in this version. Open or refresh the app to see current updates.',
   invalid: 'Check the required fields before continuing.', noPhotoPreview: 'Private photo uploads require a configured, signed-in account.',
   submitted: 'Submitted', acknowledged: 'Acknowledged', assignedState: 'Vendor assigned', waiting: 'Waiting', scheduled: 'Visit proposed', approved: 'Approved',

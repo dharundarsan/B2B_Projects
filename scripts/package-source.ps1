@@ -28,7 +28,7 @@ $rootFiles = @('README.md', 'FINAL-HANDOFF.md', 'NPM-SETUP.md', 'package.json', 
 $files = @($rootFiles | ForEach-Object { (Get-Item -LiteralPath (Join-Path $sourceRoot $_)).FullName })
 foreach ($folder in @('apps/web', 'apps/mobile', 'apps/api', 'scripts', 'tests', 'docs')) { $files += @(Get-PublicSourceFiles (Join-Path $sourceRoot $folder)) }
 $files = @($files | Sort-Object -Unique)
-$required = @('apps/web/src/App.tsx', 'apps/mobile/src/app/_layout.tsx', 'apps/mobile/package-lock.json', 'apps/mobile/vendor/decode-uri-component/index.cjs', 'apps/api/Program.cs', 'apps/api/DatabaseScripts/MySql/004_mobile_operations.sql')
+$required = @('apps/web/src/App.tsx', 'apps/mobile/src/app/_layout.tsx', 'apps/mobile/package-lock.json', 'apps/mobile/vendor/decode-uri-component/index.cjs', 'apps/api/Program.cs', 'apps/api/DatabaseScripts/MySql/004_mobile_operations.sql', 'apps/api/DatabaseScripts/MySql/005_resident_privacy.sql', 'docs/RESIDENT-PRIVACY.md')
 foreach ($relative in $required) { if ((Join-Path $sourceRoot $relative) -notin $files) { throw "Missing required source: $relative" } }
 
 [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($archivePath)) | Out-Null

@@ -5,7 +5,12 @@ namespace RepairLedger.Api.Controllers;
 public abstract class RepairLedgerController(Actor actor) : ControllerBase
 {
     protected Actor Actor => actor;
-    protected static object Data<T>(T data) => new { data };
+    protected object Data<T>(T data) => new { data = data switch
+    {
+        Repair repair => Helpers.RepairResponseHelper.ForActor(Actor, repair),
+        IEnumerable<Repair> repairs => repairs.Select(r => Helpers.RepairResponseHelper.ForActor(Actor, r)).ToArray(),
+        _ => (object?)data
+    } };
     protected long? Revision()
     {
         var raw = Request.Headers.IfMatch.ToString().Trim('"');

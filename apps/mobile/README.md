@@ -21,7 +21,7 @@ The root also provides `npm run preview:mobile` after the mobile dependencies ar
 ## Connect to the real API
 
 1. Configure the existing API's MySQL connection, Supabase URL/public key, and private storage service-role key using [the repository setup guide](../../docs/SETUP.md). Preserve existing local settings. Set `Demo:Enabled=false` for real account testing; the development API otherwise uses a demo-owner identity and is not suitable for testing mobile roles.
-2. Back up an existing database and apply migration 004 with `npm run db:migrate` from the repository root. Run `npm run db:check` afterwards. The migration adds tables; it does not reset existing records. Do not apply the final-schema snapshot to a populated database.
+2. Back up an existing database and apply numbered migrations through **005** with `npm run db:migrate` from the repository root. Run `npm run db:check` afterwards. Migration 004 adds mobile tables; 005 adds resident bindings without resetting or guessing identities for existing records. Do not apply the final-schema snapshot to a populated database. Coordinate resident provisioning using [the privacy rollout guide](../../docs/RESIDENT-PRIVACY.md).
 3. Copy `.env.example` to `.env` **only if `.env` does not already exist**, then fill in the public API URL and Supabase URL/key. Never put the service-role key, MySQL password or other backend secrets in an `EXPO_PUBLIC_` variable.
 4. Have the apartment administrator assign the account metadata described below. Sign in using that provisioned account's email and password. No self-service account creation or role assignment is implemented in the mobile app.
 5. Start the API and run `npm start` in this directory. With `expo-dev-client` installed, Expo may default to a development build; use `npm run start:go` to explicitly use a matching Expo Go client. A development build is the intended production-development route.
@@ -62,7 +62,16 @@ For a resident, the administrator sets metadata like:
   "role": "tenant",
   "workspace_id": "actual_landlord_workspace_id",
   "property_ids": ["actual_mysql_property_id"],
-  "property_units": { "actual_mysql_property_id": ["A-204"] }
+  "property_units": { "actual_mysql_property_id": ["A-204"] },
+  "resident_occupancies": [
+    {
+      "id": "b3a24db4-72d1-4f10-93b6-83e211f2e758",
+      "property_id": "actual_mysql_property_id",
+      "unit": "A-204",
+      "starts_at": "2026-10-01T00:00:00Z",
+      "ends_at": "2027-10-01T00:00:00Z"
+    }
+  ]
 }
 ```
 
@@ -78,6 +87,8 @@ For a watchman:
 
 Replace examples with exact IDs and unit labels used by the landlord's API. IDs and labels are case-sensitive. A property's name is not its ID. The workspace ID must match the property's MySQL workspace. Unassigned accounts see a setup notice and cannot report into an arbitrary building. Owners/managers/vendors use the existing web app; watchmen signing into the web app see a mobile-app handoff instead of a manager-route loop.
 
+For residents, use a **new occupancy UUID for every period**, with actual start/end instants and explicit timezone offsets. Both the dated assignment and property/unit permissions are required. Missing, expired, future or ambiguous assignments fail closed. Private repairs require the same account, occupancy and report-date window; a matching unit never reveals a previous occupant's history. The illustrative dates/UUID above are not a provisioned account. See [the full provisioning/linking rules](../../docs/RESIDENT-PRIVACY.md). Watchmen do not need resident occupancy entries.
+
 No new administrator account-management UI is included. Assign metadata through your already-authorized Supabase administrator workflow.
 
 ## Screens and workflows
@@ -90,7 +101,7 @@ No new administrator account-management UI is included. Assign metadata through 
 | Resident | Report | Assigned building/apartment, problem details, hazard/priority, access arrangement, optional private photo, review and receipt |
 | Resident | Repair details | Next action, both-party visit confirmation, decline, resolved/unresolved verification with a note |
 | Resident | Conversation | Scoped repair messages shared with manager/assigned vendor |
-| Resident | Repair history | Existing API audit events |
+| Resident | Repair history | Restricted resident-facing progress timeline; no internal audit details or actor identifiers |
 | Resident | Photos | Camera/library selection, private upload, signed image viewing |
 | Watchman | Visits | Confirmed visits for each building's local day, expected/on-site/left filters |
 | Watchman | Gate confirmation | Manual identity-check reminder, arrival/departure confirmation, actor/time audit and revision conflict handling |
@@ -125,7 +136,7 @@ tests/                   Policy, storage, preview and dependency tests
 vendor/                  Licensed URI decoder security backport
 ```
 
-The backend follows the repository's Controllers → Business → DataAccess → SQLFiles structure. See [the current schema](../../docs/FINAL-SCHEMA.md) for migration 004 and the three new tables.
+The backend follows the repository's Controllers → Business → DataAccess → SQLFiles structure. See [the current schema](../../docs/FINAL-SCHEMA.md) for mobile tables in migration 004 and account/occupancy binding in 005.
 
 ## Verify changes
 
@@ -140,7 +151,7 @@ npm run export
 
 ## Before a real rollout
 
-- Complete **lease/occupancy-period authorization** before tenant turnover. Resident access is currently unit-wide; a replacement resident could otherwise see the previous occupant's history. The native app does not solve this existing backend privacy gap.
+- Provision and test the new **account/occupancy-period authorization** before rollout. Property/unit-only accounts no longer qualify; legacy repairs remain manager/vendor-only until explicitly linked to an eligible account and period. Test turnover, returning residents, revocation and private URLs with real Supabase accounts/devices. This is not a full lease/account-administration system; see [the privacy guide](../../docs/RESIDENT-PRIVACY.md).
 - Test real Supabase login/refresh/logout, private storage, camera denial, permission revocation, conflicts, timezones, background transitions, deep links, large text, screen readers and weak networks on physical Android/iOS devices.
 - Resolve remaining mobile dependency advisories before rollout. The fresh 3 October 2026 audit reports **19 high package findings**, propagated through Expo/Metro and React Native tooling from two advisories: [`braces` stack exhaustion](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) and [`node-forge` signature verification](https://github.com/advisories/GHSA-86w9-cpqp-85rv). Both advisories currently list no patched version. This replaces the earlier four-finding audit result; package-level propagation does not mean 19 independent vulnerabilities. Do not run `npm audit fix --force`, which proposes incompatible Expo/React Native downgrades. No claim is made that these findings are harmless or resolved. The URI decoder is backported from upstream v0.5.0 in CommonJS format with its MIT license; xcode's UUID dependency uses a compatible patched CJS release. Remove these targeted overrides when an upstream SDK update safely resolves them.
 - Define photo retention/cache cleanup, account administration and staff assignment/revocation procedures. Do not store tenant keys/codes in report text.

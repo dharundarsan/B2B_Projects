@@ -55,7 +55,7 @@ npm run preview:mobile
 
 Choose **Preview resident app** or **Preview watchman app** at the address Expo prints. The explicitly marked preview uses temporary sample data; it does not grant backend permissions or upload photos.
 
-For a physical phone, follow [the mobile setup guide](apps/mobile/README.md), configure `apps/mobile/.env` from its example, and provision the account's trusted role/building assignments. Use your PC's reachable LAN API address, not phone `localhost`, with demo authentication disabled. Migration 004 is required. After configuring a compatible Expo Go client or development build:
+For a physical phone, follow [the mobile setup guide](apps/mobile/README.md), configure `apps/mobile/.env` from its example, and provision trusted role/building assignments plus dated resident occupancies. Use your PC's reachable LAN API address, not phone `localhost`, with demo authentication disabled. Apply migrations through **005**. After configuring a compatible Expo Go client or development build:
 
 ```powershell
 npm --prefix apps/mobile run start:go
@@ -67,7 +67,7 @@ Watchmen can track confirmed vendor arrival/departure and shared-area reports. T
 
 ## Verification
 
-The 3 October 2026 handoff pass completed the following checks:
+The original 3 October 2026 source handoff pass completed the following checks, before the privacy increment documented below:
 
 | Check | Result |
 | --- | --- |
@@ -84,6 +84,24 @@ The 3 October 2026 handoff pass completed the following checks:
 | Mobile npm dependency audit | 19 high package findings remain; release blocker described below |
 
 The preceding mobile implementation also passed all 107 backend tests against an isolated MySQL 8.4.11 server. That MySQL run is separate from this handoff's SQLite regression run; no production MySQL connection or live Supabase service is claimed. The earlier browser walkthrough used synthetic data and verified reporting, resident responses, conversations, language selection and watchman gate actions.
+
+### Current Git-checkout privacy increment — 3 October 2026
+
+The main checkout now contains schema **005**: account/occupancy-specific private repair access, resident response allowlisting, revision-checked immutable manager linking, shared server-authorized web/native apartment choices and account-scoped memory-only web drafts. Missing or expired assignments get an explicit setup notice. Existing records are retained without automatic resident links. Follow [the provisioning and rollout guide](docs/RESIDENT-PRIVACY.md) before using real accounts.
+
+| Check | Completed result |
+| --- | --- |
+| Latest backend regression suite, isolated SQLite | 129 passed |
+| Privacy/migration/workflow suite, isolated MySQL 8.4.11 | 128 passed; fresh generated test schemas, no existing service/customer database |
+| Web policy tests | 60 passed |
+| Root command tests | 5 passed |
+| Web TypeScript and production builds | Passed with synthetic build-only public configuration and with the unconfigured setup gate |
+| Mobile TypeScript and policy/storage tests | Passed; 15 tests |
+| Latest isolated HTTP workflow | 38 checks passed, including link validation, revisions, immutability and OpenAPI |
+
+The additional first-report-specific regression and the final safe approval-status presentation checks ran after the MySQL run; they passed in the latest SQLite/web suites, not as additional MySQL tests. Supabase verification uses a test HTTP handler for authorization cases, not a live account. No new native binary/export, production load test or real Supabase/storage/device validation was performed for this increment. A local browser-preview launch was blocked by the host, so the new screens have compile/policy coverage and source review, **not** a completed visual walkthrough.
+
+These changes are in the Git working copy only. Previously generated source ZIPs are not refreshed. No changes are committed/pushed automatically, no configured database was migrated and no account metadata was edited. The existing lease/account-administration, file retention, notifications, pagination, dependency-audit and device-testing limitations still apply.
 
 To repeat checks from the extracted root:
 
@@ -105,7 +123,7 @@ npm --prefix apps/mobile run export
 
 Vercel configuration is provided for the web frontend. Build it with your public production API/Supabase settings. Host the C# API separately using its Dockerfile or a .NET host, with a MySQL service and private backend secrets. This handoff does not create accounts, deploy services, apply migrations to your data, or sign native binaries.
 
-Before using real tenants, implement lease/occupancy-period authorization: existing resident access is unit-wide and could expose a previous occupant's history after tenant turnover. Complete real Supabase, private-photo and physical-device testing; define photo retention and staff assignment/revocation.
+Before using real tenants, apply schema 005 and provision/test the implemented account/occupancy-period policy using [the privacy rollout guide](docs/RESIDENT-PRIVACY.md). Property/unit-only resident metadata is no longer sufficient. Existing repairs stay unlinked until a manager independently verifies an eligible account/period and explicitly links them. Complete real Supabase, private-photo and physical-device testing; define photo retention and staff assignment/revocation. A full lease/account-management UI and household sharing are not included.
 
 The fresh mobile audit reports 19 high package findings propagated from [`braces`](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) and [`node-forge`](https://github.com/advisories/GHSA-86w9-cpqp-85rv) through the Expo/Metro/React Native dependency graph. Both advisory pages currently list no patched release. These are unresolved release checks, not 19 independently confirmed application exploits or a clean audit. Keep the development toolchain on a trusted network; reassess with compatible upstream fixes before rollout. Do not force incompatible framework downgrades to silence npm audit.
 

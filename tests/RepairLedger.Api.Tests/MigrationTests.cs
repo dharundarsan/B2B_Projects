@@ -38,6 +38,7 @@ public sealed class MigrationTests
             Assert.True(Assert.Single(repair.VerificationHistory).LegacySnapshot);
             Assert.Equal("verified", repair.VerificationHistory[0].Status);
             Assert.Equal("Fixed", repair.VerificationHistory[0].Note);
+            Assert.False(repair.ResidentLinked); // Never auto-share legacy history with the current resident.
             await using var check = await connection.Open(default);
             Assert.Equal(DatabaseMigrationHelper.CurrentVersion, await check.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM schema_migrations"));
             Assert.Equal(1, await check.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM request_locations"));
@@ -71,6 +72,7 @@ public sealed class MigrationTests
     [InlineData(2)]
     [InlineData(3)]
     [InlineData(4)]
+    [InlineData(5)]
     public Task MySql_recovers_from_a_partly_committed_DDL_migration(int interruptedVersion) => WithDatabase(async (connection, sql, dapper, config) =>
     {
         if (connection.Provider != RepairLedger.Api.Enums.DatabaseConnectionType.MySql) return;
@@ -79,7 +81,7 @@ public sealed class MigrationTests
             await db.ExecuteAsync(sql.GetSqlQuery("BootstrapMigrations"));
             for (var version = 1; version <= interruptedVersion; version++)
             {
-                var file = version switch { 1 => "001_initial", 2 => "002_relational_history", 3 => "003_integrity", _ => "004_mobile_operations" };
+                var file = version switch { 1 => "001_initial", 2 => "002_relational_history", 3 => "003_integrity", 4 => "004_mobile_operations", _ => "005_resident_privacy" };
                 var script = sql.ReadResource($"RepairLedger.Api.DatabaseScripts.MySql.{file}.sql");
                 var parameters = new { version, at = DateTimeOffset.UtcNow.ToString("O"),
                     checksum = SqlScriptHelper.Checksum(script) };

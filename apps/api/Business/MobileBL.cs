@@ -7,7 +7,7 @@ public sealed class MobileBL(IMobileDAL repository, TimeProvider time) : IMobile
         actor.RequireMobileUser();
         var properties = await repository.Properties(actor, ct);
         foreach (var property in properties)
-            property.Units = actor.Role == "tenant" ? actor.PropertyUnits.GetValueOrDefault(property.Id) ?? [] : [];
+            property.Units = actor.Role == "tenant" ? actor.ResidentUnits.GetValueOrDefault(property.Id) ?? [] : [];
         return new(actor.Role, actor.Email, properties);
     }
     public async Task<List<GateVisit>> Visits(Actor actor, CancellationToken ct)

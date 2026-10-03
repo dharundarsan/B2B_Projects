@@ -25,7 +25,9 @@ public sealed class WorkflowTests : IAsyncLifetime
     private RepairBL service = null!;
     private static readonly Actor Owner = new("owner", "test-workspace", "owner", "owner@example.com", null, []);
     private static readonly Actor Vendor = new("vendor-user", "test-workspace", "vendor", "vendor@example.com", "vendor", []);
-    private static readonly Actor Resident = new("resident", "test-workspace", "tenant", "resident@example.com", null, new() { ["property"] = ["3B"] });
+    private const string OccupancyId = "22222222-2222-4222-8222-222222222222";
+    private static readonly Actor Resident = new("11111111-1111-4111-8111-111111111111", "test-workspace", "tenant", "resident@example.com", null,
+        new() { ["property"] = ["3B"] }, ResidentOccupancies: [new(OccupancyId, "property", "3B", DateTimeOffset.UtcNow.AddYears(-1), null)]);
     private static readonly Actor Demo = new("demo", "test-workspace", "demo", "demo@example.com", null, []);
     public async Task InitializeAsync()
     {
@@ -62,7 +64,8 @@ public sealed class WorkflowTests : IAsyncLifetime
         }
         foreach (var suffix in new[] { "", "-wal", "-shm" }) if (File.Exists(path + suffix)) File.Delete(path + suffix);
     }
-    private Task<Repair> Create(string unit = "3B", string priority = "routine") => service.Create(Owner, new("Leaking tap", null, "property", unit, "Resident", "Plumbing", "Tap is leaking", priority, SafetyAnswers: new() { ["waterFlowing"] = "Yes" }), default);
+    private Task<Repair> Create(string unit = "3B", string priority = "routine") => service.Create(Owner, new("Leaking tap", null, "property", unit, "Resident", "Plumbing", "Tap is leaking", priority,
+        SafetyAnswers: new() { ["waterFlowing"] = "Yes" }, ResidentUserId: unit == "3B" ? Resident.Id : null, ResidentOccupancyId: unit == "3B" ? OccupancyId : null), default);
     private async Task<Repair> Quoted()
     {
         var r = await Create();
@@ -314,6 +317,104 @@ public sealed class WorkflowTests : IAsyncLifetime
         await Assert.ThrowsAnyAsync<System.Data.Common.DbException>(() => db.ExecuteAsync(sql.GetSqlQuery("SaveEvidence"),
             evidence with { Id = "duplicate-path" }));
         Assert.Equal(path, Assert.Single((await repository.Get(Owner, repair.Id, default)).Evidence).Path);
+    }
+    [Fact]
+    public async Task A_unit_label_never_exposes_unlinked_or_another_occupants_history()
+    {
+        var linked = await Create();
+        var legacy = await service.Create(Owner, new("Legacy repair", null, "property", "3B", "Same display name", "Plumbing", "Old resident's private issue"), default);
+        Assert.False(legacy.ResidentLinked); Assert.Equal(linked.Id, Assert.Single(await repository.List(Resident, default)).Id);
+        var replacement = Resident with { Id = "33333333-3333-4333-8333-333333333333" };
+        Assert.Empty(await repository.List(replacement, default));
+        Assert.Equal(404, (await Assert.ThrowsAsync<ApiException>(() => repository.Get(replacement, linked.Id, default))).Status);
+        Assert.Equal(404, (await Assert.ThrowsAsync<ApiException>(() => repository.Messages(Resident, legacy.Id, default))).Status);
+        Assert.Equal(2, (await repository.List(Owner, default)).Count);
+    }
+    [Fact]
+    public async Task A_returning_resident_with_a_new_occupancy_cannot_reopen_the_previous_period()
+    {
+        var repair = await Create();
+        var returning = Resident with { ResidentOccupancies = [new(Guid.NewGuid().ToString("D"), "property", "3B", DateTimeOffset.UtcNow.AddDays(-1), null)] };
+        Assert.Empty(await repository.List(returning, default));
+        Assert.Equal(404, (await Assert.ThrowsAsync<ApiException>(() => repository.SendMessage(returning, repair.Id, "Can I see the old conversation?", default))).Status);
+        Assert.Equal(404, (await Assert.ThrowsAsync<ApiException>(() => service.Verify(returning, repair.Id, new(true, null), default, repair.Revision))).Status);
+        using var http = new HttpClient(); var evidence = new EvidenceBL(repository, new EvidenceStorage(http, new ConfigurationManager()));
+        Assert.Equal(404, (await Assert.ThrowsAsync<ApiException>(() => evidence.Download(returning, repair.Id, "photo", default))).Status);
+        Assert.Equal(404, (await Assert.ThrowsAsync<ApiException>(() => evidence.Upload(returning, new(repair.Id, "Photo.jpg", "image/jpeg", 100), default))).Status);
+    }
+    [Fact]
+    public async Task Missing_future_expired_or_revoked_occupancy_denies_reads_and_writes()
+    {
+        var repair = await Create();
+        var assignment = Resident.ResidentOccupancies![0];
+        foreach (var actor in new[] {
+            Resident with { ResidentOccupancies = null },
+            Resident with { ResidentOccupancies = [assignment with { StartsAt = DateTimeOffset.UtcNow.AddDays(1) }] },
+            Resident with { ResidentOccupancies = [assignment with { EndsAt = DateTimeOffset.UtcNow.AddSeconds(-1) }] },
+            Resident with { PropertyUnits = [] } })
+        {
+            Assert.Empty(await repository.List(actor, default)); Assert.Empty(await repository.Properties(actor, default));
+            Assert.Equal(404, (await Assert.ThrowsAsync<ApiException>(() => repository.SendMessage(actor, repair.Id, "Blocked", default))).Status);
+            await Assert.ThrowsAsync<ApiException>(() => service.Create(actor, new("Blocked report", null, "property", "3B", "Resident", "Plumbing", "Private repair"), default));
+        }
+    }
+    [Fact]
+    public async Task A_report_before_the_assignment_start_is_not_visible_even_with_the_same_ids()
+    {
+        var repair = await Create();
+        await using var db = await database.Open(default);
+        var oldAt = Resident.ResidentOccupancies![0].StartsAt.AddDays(-1).ToUniversalTime().ToString("O");
+        await db.ExecuteAsync("UPDATE requests SET created_at=@oldAt WHERE workspace_id=@workspace AND id=@id", new { oldAt, workspace = Owner.WorkspaceId, id = repair.Id });
+        Assert.Empty(await repository.List(Resident, default));
+        Assert.Equal(404, (await Assert.ThrowsAsync<ApiException>(() => repository.Get(Resident, repair.Id, default))).Status);
+        Assert.Equal(oldAt, (await repository.Get(Owner, repair.Id, default)).CreatedAt);
+    }
+    [Fact]
+    public async Task Resident_creation_ignores_client_identity_and_occupancy_spoofing()
+    {
+        var repair = await service.Create(Resident, new("Self reported", null, "property", "3B", "Any display name", "Plumbing", "Tap is leaking",
+            ResidentUserId: "33333333-3333-4333-8333-333333333333", ResidentOccupancyId: Guid.NewGuid().ToString("D")), default);
+        var stored = await repository.Get(Owner, repair.Id, default);
+        Assert.Equal(Resident.Id, stored.ResidentUserId); Assert.Equal(OccupancyId, stored.ResidentOccupancyId);
+        Assert.True(Resident.CanAccess(stored)); Assert.Equal(repair.Id, Assert.Single(await repository.List(Resident, default)).Id);
+    }
+    [Fact]
+    public async Task Manager_linking_is_explicit_revision_checked_audited_and_not_transferable()
+    {
+        var repair = await service.Create(Owner, new("Unlinked report", null, "property", "3B", "Resident", "Plumbing", "Tap is leaking"), default);
+        var input = new ResidentLinkInput(Resident.Id, OccupancyId);
+        Assert.Equal(403, (await Assert.ThrowsAsync<ApiException>(() => service.LinkResident(Resident, repair.Id, input, default, 0))).Status);
+        Assert.Equal(400, (await Assert.ThrowsAsync<ApiException>(() => service.LinkResident(Owner, repair.Id, input, default, null))).Status);
+        Assert.Equal(409, (await Assert.ThrowsAsync<ApiException>(() => service.LinkResident(Owner, repair.Id, input, default, 1))).Status);
+        Assert.False((await repository.Get(Owner, repair.Id, default)).ResidentLinked);
+        var saved = await service.LinkResident(Owner, repair.Id, input, default, 0);
+        Assert.Equal(1, saved.Revision); Assert.Equal("resident-link", saved.Events.Last().Type);
+        Assert.Equal(saved.Id, (await repository.Get(Resident, repair.Id, default)).Id);
+        Assert.Equal(409, (await Assert.ThrowsAsync<ApiException>(() => service.LinkResident(Owner, repair.Id, input with { ResidentUserId = Guid.NewGuid().ToString("D") }, default, 1))).Status);
+    }
+    [Fact]
+    public async Task Incomplete_or_invalid_manager_binding_fails_before_a_repair_is_created()
+    {
+        var input = new CreateRepair("Invalid binding", null, "property", "3B", "Resident", "Plumbing", "Tap is leaking", ResidentUserId: Resident.Id);
+        Assert.Equal(400, (await Assert.ThrowsAsync<ApiException>(() => service.Create(Owner, input, default))).Status);
+        await Assert.ThrowsAsync<ApiException>(() => service.Create(Owner, input with { ResidentUserId = "resident@example.test", ResidentOccupancyId = OccupancyId }, default));
+        Assert.Empty(await repository.List(Owner, default));
+    }
+    [Fact]
+    public async Task Database_binding_pairs_and_controller_resident_payloads_are_enforced()
+    {
+        var repair = await Quoted();
+        await using (var db = await database.Open(default))
+            await Assert.ThrowsAnyAsync<System.Data.Common.DbException>(() => db.ExecuteAsync("UPDATE requests SET resident_occupancy_id=NULL WHERE workspace_id=@workspace AND id=@id", new { workspace = Owner.WorkspaceId, id = repair.Id }));
+        var controller = new RepairLedger.Api.Controllers.RequestsController(service, Resident) {
+            ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext { HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext() }
+        };
+        var options = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
+        var list = System.Text.Json.JsonSerializer.Serialize(await controller.List(default), options);
+        var detail = System.Text.Json.JsonSerializer.Serialize(await controller.Get(repair.Id, default), options);
+        Assert.DoesNotContain("\"estimates\"", list); Assert.DoesNotContain("\"estimate\"", detail); Assert.DoesNotContain("\"offers\"", detail);
+        Assert.DoesNotContain(Resident.Id, detail); Assert.DoesNotContain(OccupancyId, detail);
+        Assert.NotNull((await repository.Get(Owner, repair.Id, default)).Estimate);
     }
     internal sealed class TestEnvironment : IWebHostEnvironment
     {

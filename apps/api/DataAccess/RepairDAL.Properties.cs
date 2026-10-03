@@ -5,13 +5,14 @@ public sealed partial class RepairDAL
 {
     public async Task<List<Property>> Properties(Actor actor, CancellationToken ct)
     {
-        if (!actor.IsManager && (actor.Role != "tenant" || actor.PropertyUnits.Count == 0)) return [];
+        var residentUnits = actor.ResidentUnits;
+        if (!actor.IsManager && (actor.Role != "tenant" || residentUnits.Count == 0)) return [];
         var parameters = new DynamicParameters(new { workspace = actor.WorkspaceId });
         var scope = "p.workspace_id=@workspace AND p.archived=0";
         if (!actor.IsManager)
         {
             var names = new List<string>();
-            foreach (var property in actor.PropertyUnits.Keys)
+            foreach (var property in residentUnits.Keys)
             {
                 var name = "property" + names.Count; names.Add("@" + name); parameters.Add(name, property);
             }
@@ -20,7 +21,7 @@ public sealed partial class RepairDAL
         await using var db = await database.Open(ct);
         var data = await dapper.QueryAsync<Property>(db, new CommandDefinition(queryHelper.GetSqlQuery("ListProperties").Replace("{Scope}", scope), parameters, cancellationToken: ct));
         // Tenants receive only their properties, with no counts for other residents' repairs.
-        return data.Where(p => actor.IsManager || (actor.Role == "tenant" && actor.PropertyUnits.ContainsKey(p.Id)))
+        return data.Where(p => actor.IsManager || (actor.Role == "tenant" && residentUnits.ContainsKey(p.Id)))
             .Select(p => { if (!actor.IsManager) { p.OpenRequests = 0; p.UrgentRequests = 0; } return p; }).ToList();
     }
     public async Task<Property> SaveProperty(Actor actor, Property p, bool create, CancellationToken ct)
@@ -55,7 +56,7 @@ public sealed partial class RepairDAL
         var scope = "";
         if (!actor.IsManager)
         {
-            var labels = actor.PropertyUnits.GetValueOrDefault(property) ?? [];
+            var labels = actor.ResidentUnits.GetValueOrDefault(property) ?? [];
             if (labels.Length == 0) return [];
             var names = labels.Select((label, index) => { p.Add("label" + index, label); return "@label" + index; });
             scope = $" AND label IN ({string.Join(',', names)})";

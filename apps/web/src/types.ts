@@ -25,6 +25,7 @@ export interface RequestRecord {
   propertyId?: string;
   unit: string;
   resident: string;
+  residentLinked?: boolean;
   category: string;
   priority: RequestPriority;
   state: RequestState;
@@ -40,10 +41,12 @@ export interface RequestRecord {
   preferredWindow?: string;
   safetyAnswers?: Record<string, string>;
   assignedVendorId?: string;
+  vendorAssigned?: boolean;
   assignedVendorName?: string;
   vendorDecision?: "pending" | "accepted" | "declined";
   events?: ActivityEvent[];
   estimate?: EstimateVersion;
+  quoteStatus?: EstimateVersion["status"] | null;
   estimates?: EstimateVersion[];
   appointment?: AppointmentRecord;
   appointments?: AppointmentRecord[];
@@ -67,11 +70,11 @@ export interface AppointmentRecord {
 
 export interface EvidenceRecord {
   id: string;
-  path: string;
+  path?: string;
   name: string;
   contentType: string;
   size: number;
-  uploadedBy: string;
+  uploadedBy?: string;
   createdAt: string;
   status: "uploading" | "uploaded";
 }

@@ -44,15 +44,16 @@ public sealed class DatabaseCommandTests
     }
 
     [Theory]
-    [InlineData(4, true, true, true, true, true)]
+    [InlineData(5, true, true, true, true, true)]
     [InlineData(-1, true, true, true, true, false)]
     [InlineData(2, true, true, true, true, false)]
-    [InlineData(5, true, true, true, true, false)]
+    [InlineData(6, true, true, true, true, false)]
+    [InlineData(4, true, true, true, true, false)]
     [InlineData(3, true, true, true, true, false)]
-    [InlineData(4, false, true, true, true, false)]
-    [InlineData(4, true, false, true, true, false)]
-    [InlineData(4, true, true, false, true, false)]
-    [InlineData(4, true, true, true, false, false)]
+    [InlineData(5, false, true, true, true, false)]
+    [InlineData(5, true, false, true, true, false)]
+    [InlineData(5, true, true, false, true, false)]
+    [InlineData(5, true, true, true, false, false)]
     public void Readiness_requires_schema_metadata_strict_mode_and_all_InnoDB_tables(int version, bool metadata,
         bool strict, bool allTables, bool engines, bool expected)
     {

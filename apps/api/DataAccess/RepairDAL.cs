@@ -18,8 +18,8 @@ public sealed partial class RepairDAL(IConnectionHelper database, ISqlFileQueryH
     }
     private async Task<List<Repair>> Load(DbConnection db, DbTransaction? tx, Actor actor, string? id, CancellationToken ct, string? search = null, string? state = null, string? priority = null, string? property = null)
     {
-        // Explicit tenant unit predicates prevent unrelated residents' records from reaching application memory.
-        var parameters = new DynamicParameters(new { workspace = actor.WorkspaceId, id, vendor = actor.VendorId });
+        // Bind resident reads to the verified account AND current occupancy, never the unit label alone.
+        var parameters = new DynamicParameters(new { workspace = actor.WorkspaceId, id, vendor = actor.VendorId, resident = actor.Id });
         var scope = "r.workspace_id=@workspace AND (@id IS NULL OR r.id=@id)";
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -34,25 +34,22 @@ public sealed partial class RepairDAL(IConnectionHelper database, ISqlFileQueryH
         {
             var predicates = new List<string>();
             var index = 0;
-            foreach (var (propertyKey, units) in actor.PropertyUnits)
+            foreach (var occupancy in actor.ActiveResidentOccupancies)
             {
-                if (units.Length == 0) continue;
-                var unitParameters = new List<string>();
-                for (var unitIndex = 0; unitIndex < units.Length; unitIndex++)
-                {
-                    var name = $"u{index}_{unitIndex}";
-                    unitParameters.Add("@" + name); parameters.Add(name, units[unitIndex]);
-                }
-                predicates.Add($"(r.property_id=@p{index} AND r.unit IN ({string.Join(',', unitParameters)}))");
-                parameters.Add($"p{index}", propertyKey); index++;
+                predicates.Add($"(r.property_id=@p{index} AND r.unit=@u{index} AND r.resident_occupancy_id=@o{index} AND r.created_at>=@s{index} AND (@e{index} IS NULL OR r.created_at<@e{index}))");
+                parameters.Add($"p{index}", occupancy.PropertyId); parameters.Add($"u{index}", occupancy.Unit);
+                parameters.Add($"o{index}", occupancy.Id);
+                parameters.Add($"s{index}", occupancy.StartsAt.ToUniversalTime().ToString("O"));
+                parameters.Add($"e{index}", occupancy.EndsAt?.ToUniversalTime().ToString("O")); index++;
             }
-            scope += " AND (" + (predicates.Count == 0 ? "1=0" : string.Join(" OR ", predicates)) + ")";
+            scope += " AND r.resident_user_id=@resident AND (" + (predicates.Count == 0 ? "1=0" : string.Join(" OR ", predicates)) + ")";
         }
         else if (!actor.IsManager) scope += " AND 1=0";
         var childScope = $"workspace_id=@workspace AND request_id IN (SELECT r.id FROM requests r WHERE {scope})";
         var sql = queryHelper.GetSqlQuery("LoadRepairs").Replace("{Scope}", scope).Replace("{ChildScope}", childScope);
         using var result = await dapper.QueryMultipleAsync(db, new CommandDefinition(sql, parameters, tx, cancellationToken: ct));
         var repairs = (await result.ReadAsync<Repair>()).ToList();
+        if (actor.Role == "tenant") repairs = repairs.Where(actor.CanAccess).ToList();
         var events = (await result.ReadAsync<Activity>()).ToLookup(x => x.RequestId);
         var estimates = (await result.ReadAsync<Estimate>()).ToLookup(x => x.RequestId);
         var appointments = (await result.ReadAsync<Appointment>()).ToLookup(x => x.RequestId);
@@ -72,6 +69,15 @@ public sealed partial class RepairDAL(IConnectionHelper database, ISqlFileQueryH
 
     public async Task<Repair> Create(Actor actor, Repair repair, CancellationToken ct)
     {
+        if (repair.WorkspaceId != actor.WorkspaceId) throw new ApiException(403, "Workspace mismatch.");
+        if (!actor.IsManager)
+        {
+            actor.RequireResident();
+            var occupancy = actor.ActiveResidentOccupancies.SingleOrDefault(o => o.PropertyId == repair.PropertyId && o.Unit == repair.Unit)
+                ?? throw new ApiException(403, "Ask your manager to configure an active occupancy for this apartment.");
+            // Client-supplied identifiers can never select somebody else's resident history.
+            repair.ResidentUserId = actor.Id; repair.ResidentOccupancyId = occupancy.Id;
+        }
         await using var db = await database.Open(ct);
         await using var tx = await db.BeginTransactionAsync(ct);
         // Lock the property row through a harmless write, also serializing concurrent archive/create actions.
@@ -80,6 +86,8 @@ public sealed partial class RepairDAL(IConnectionHelper database, ISqlFileQueryH
         repair.UnitId = await LinkUnit(db, tx, repair, ct);
         repair.SafetyJson = System.Text.Json.JsonSerializer.Serialize(repair.SafetyAnswers);
         await dapper.ExecuteAsync(db, new CommandDefinition(queryHelper.GetSqlQuery("InsertRepair"), repair, tx, cancellationToken: ct));
+        if (repair.ResidentLinked)
+            await dapper.ExecuteAsync(db, new CommandDefinition(queryHelper.GetSqlQuery("BindResidentRepair"), repair, tx, cancellationToken: ct));
         await LinkRequest(db, tx, repair, ct);
         await SaveChildren(db, tx, repair, ct);
         await Notify(db, tx, repair, "New repair reported", "request", ct);

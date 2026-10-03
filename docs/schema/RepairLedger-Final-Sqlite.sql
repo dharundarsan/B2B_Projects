@@ -1,6 +1,6 @@
--- RepairLedger final SQLite reference schema: version 4.
+-- RepairLedger final SQLite reference schema: version 5.
 -- Reference/bootstrap for an EMPTY database/schema only. Never run against an existing installation.
--- Existing installations MUST use the embedded 001 -> 002 -> 003 migrations.
+-- Existing installations MUST use the embedded numbered migrations through 005.
 -- No customer data, credentials, seed records, drops or destructive resets are included.
 BEGIN;
 
@@ -37,17 +37,20 @@ CREATE TABLE requests (
  workspace_id TEXT NOT NULL, id TEXT NOT NULL, revision BIGINT NOT NULL DEFAULT 0,
  title TEXT NOT NULL, property TEXT NOT NULL, property_id TEXT NOT NULL, unit TEXT NOT NULL,
  resident TEXT NOT NULL, category TEXT NOT NULL, priority TEXT NOT NULL CHECK(priority IN ('routine','urgent')),
+ resident_user_id TEXT,resident_occupancy_id TEXT,
  state TEXT NOT NULL CHECK(state IN ('draft','submitted','urgent','acknowledged','assigned','waiting','scheduled','approved','in_progress','completed','verification','invoice_review','closed','cancelled')),
  next_action TEXT NOT NULL, due_label TEXT NOT NULL, description TEXT NOT NULL, access TEXT NOT NULL,
  language TEXT NOT NULL, timezone TEXT NOT NULL, created_at TEXT NOT NULL, photo_url TEXT, access_notes TEXT,
  preferred_window TEXT, safety_json TEXT NOT NULL DEFAULT '{}', assigned_vendor_id TEXT,
  assigned_vendor_name TEXT, vendor_decision TEXT CHECK(vendor_decision IN ('pending','accepted','declined')),
  verification_json TEXT, PRIMARY KEY(workspace_id,id),
+ CONSTRAINT ck_requests_resident_binding CHECK((resident_user_id IS NULL AND resident_occupancy_id IS NULL) OR (resident_user_id IS NOT NULL AND resident_occupancy_id IS NOT NULL)),
  FOREIGN KEY(workspace_id,property_id) REFERENCES properties(workspace_id,id),
  FOREIGN KEY(workspace_id,assigned_vendor_id) REFERENCES vendors(workspace_id,id)
 );
 
 CREATE UNIQUE INDEX ux_request_property_reference ON requests(workspace_id,id,property_id);
+CREATE INDEX ix_requests_resident_access ON requests(workspace_id,resident_user_id,resident_occupancy_id);
 
 CREATE TABLE request_locations (
  workspace_id TEXT NOT NULL, request_id TEXT NOT NULL, property_id TEXT NOT NULL, unit_id TEXT NOT NULL,
@@ -164,9 +167,9 @@ CREATE TABLE common_area_issue_events (
 );
 CREATE INDEX ix_common_area_history ON common_area_issue_events(workspace_id,issue_id,at);
 
--- Mark the baseline compatible with the application's four versioned migrations.
+-- Mark the baseline compatible with the application's five versioned migrations.
 INSERT INTO schema_migrations(version,applied_at) VALUES
- (1,CAST(CURRENT_TIMESTAMP AS TEXT)),(2,CAST(CURRENT_TIMESTAMP AS TEXT)),(3,CAST(CURRENT_TIMESTAMP AS TEXT)),(4,CAST(CURRENT_TIMESTAMP AS TEXT));
+ (1,CAST(CURRENT_TIMESTAMP AS TEXT)),(2,CAST(CURRENT_TIMESTAMP AS TEXT)),(3,CAST(CURRENT_TIMESTAMP AS TEXT)),(4,CAST(CURRENT_TIMESTAMP AS TEXT)),(5,CAST(CURRENT_TIMESTAMP AS TEXT));
 COMMIT;
 
 

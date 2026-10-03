@@ -76,6 +76,15 @@ try {
     $id = $repair.id
     $get = Invoke-Api 'GET' "/api/requests/$id"
     Assert-True ($get.Headers.ETag -and $get.Json.data.id -eq $id) 'detail and ETag'
+    Assert-True (!$get.Json.data.residentLinked -and !$get.Json.data.PSObject.Properties['residentUserId'] -and !$get.Json.data.PSObject.Properties['residentOccupancyId']) 'legacy-style intake is unlinked and binding identifiers stay private'
+    $residentBinding = @{ residentUserId = [Guid]::NewGuid().ToString('D'); residentOccupancyId = [Guid]::NewGuid().ToString('D') }
+    Assert-True ((Invoke-Api 'POST' "/api/requests/$id/resident-link" $residentBinding).Status -eq 400) 'resident link requires explicit revision'
+    Assert-True ((Invoke-Api 'POST' "/api/requests/$id/resident-link" @{ residentUserId = 'not-an-account'; residentOccupancyId = $residentBinding.residentOccupancyId } @{ 'If-Match' = ('"' + $get.Json.data.revision + '"') }).Status -eq 400) 'resident link rejects invalid identity'
+    $linked = Invoke-Api 'POST' "/api/requests/$id/resident-link" $residentBinding @{ 'If-Match' = ('"' + $get.Json.data.revision + '"') }
+    Assert-True ($linked.Status -eq 200 -and $linked.Json.data.residentLinked -and $linked.Json.data.revision -eq ($get.Json.data.revision + 1) -and @($linked.Json.data.events | Where-Object type -eq 'resident-link').Count -eq 1) 'resident link is revision-checked and audited'
+    Assert-True ((Invoke-Api 'POST' "/api/requests/$id/resident-link" $residentBinding @{ 'If-Match' = ('"' + $get.Json.data.revision + '"') }).Status -eq 409) 'resident link rejects stale revision'
+    Assert-True ((Invoke-Api 'POST' "/api/requests/$id/resident-link" $residentBinding @{ 'If-Match' = ('"' + $linked.Json.data.revision + '"') }).Status -eq 409) 'resident link cannot be overwritten or transferred'
+    $get = Invoke-Api 'GET' "/api/requests/$id"
     $revision = $get.Json.data.revision
     $updated = Invoke-Api 'POST' "/api/requests/$id/transition" @{ state = 'acknowledged'; note = 'Review' } @{ 'If-Match' = ('"' + $revision + '"') }
     Assert-True ($updated.Status -eq 200) 'transition'
@@ -114,7 +123,7 @@ try {
     $storage = Invoke-Api 'POST' '/api/evidence/upload-url' @{ requestId = $id; name = 'test.png'; contentType = 'image/png'; size = 100 }
     Assert-True ($storage.Status -eq 503 -and $storage.Json.message) 'unconfigured evidence fails honestly'
     $spec = Invoke-Api 'GET' '/openapi/v1.json'
-    Assert-True ($spec.Status -eq 200 -and $spec.Json.paths.'/api/requests' -and $spec.Json.paths.'/api/properties/{id}/units') 'OpenAPI controllers and units'
+    Assert-True ($spec.Status -eq 200 -and $spec.Json.paths.'/api/requests' -and $spec.Json.paths.'/api/properties/{id}/units' -and $spec.Json.paths.'/api/requests/{id}/resident-link') 'OpenAPI controllers, units and resident linking'
     $passed = $true
     Write-Output "HTTP smoke passed: $script:checks checks. No real user database was used."
 }

@@ -13,6 +13,9 @@ public sealed class Repair
     public string Unit { get; set; } = "";
     public string? UnitId { get; set; }
     public string Resident { get; set; } = "";
+    [JsonIgnore] public string? ResidentUserId { get; set; }
+    [JsonIgnore] public string? ResidentOccupancyId { get; set; }
+    public bool ResidentLinked => ResidentUserId != null && ResidentOccupancyId != null;
     public string Category { get; set; } = "";
     public string Priority { get; set; } = "routine";
     public string State { get; set; } = "submitted";

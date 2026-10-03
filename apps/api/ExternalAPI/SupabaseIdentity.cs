@@ -36,6 +36,7 @@ public sealed class SupabaseIdentity(HttpClient client, IConfiguration configura
                 if (assignedUnits is JsonArray array && propertyIds?.Contains(property) == true)
                     units[property] = array.OfType<JsonValue>().Select(x => x.GetValue<string>()).ToArray();
         return new Actor(id, workspace, role, user["email"]?.GetValue<string>() ?? id, metadata["vendor_id"]?.GetValue<string>(), units,
-            propertyIds?.OfType<string>().Where(x => !string.IsNullOrWhiteSpace(x)).ToArray() ?? []);
+            propertyIds?.OfType<string>().Where(x => !string.IsNullOrWhiteSpace(x)).ToArray() ?? [],
+            Helpers.ResidentAccessHelper.Parse(metadata));
     }
 }

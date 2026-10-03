@@ -1,7 +1,7 @@
--- RepairLedger final MySQL 8.4 LTS / InnoDB schema: version 4.
+-- RepairLedger final MySQL 8.4 LTS / InnoDB schema: version 5.
 -- Reference/bootstrap for an EMPTY database/schema only. Never run against an existing installation.
 -- MySQL DDL is not transactionally reversible; back up before schema changes.
--- Existing installations MUST use the embedded 001 -> 002 -> 003 migrations.
+-- Existing installations MUST use the embedded numbered migrations through 005.
 -- No customer data, credentials, seed records, drops or destructive resets are included.
 CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at VARCHAR(40) NOT NULL, completed INTEGER NOT NULL DEFAULT 1 CHECK(completed IN (0,1)), checksum CHAR(64)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_as_cs;
@@ -37,18 +37,21 @@ CREATE TABLE requests (
  workspace_id VARCHAR(200) NOT NULL, id VARCHAR(200) NOT NULL, revision BIGINT NOT NULL DEFAULT 0,
  title VARCHAR(200) NOT NULL, property VARCHAR(160) NOT NULL, property_id VARCHAR(200) NOT NULL, unit VARCHAR(40) NOT NULL,
  resident VARCHAR(160) NOT NULL, category VARCHAR(100) NOT NULL, priority VARCHAR(32) NOT NULL CHECK(priority IN ('routine','urgent')),
+ resident_user_id VARCHAR(200),resident_occupancy_id VARCHAR(36),
  state VARCHAR(32) NOT NULL CHECK(state IN ('draft','submitted','urgent','acknowledged','assigned','waiting','scheduled','approved','in_progress','completed','verification','invoice_review','closed','cancelled')),
  next_action VARCHAR(255) NOT NULL, due_label VARCHAR(255) NOT NULL, description TEXT NOT NULL, access TEXT NOT NULL,
  language VARCHAR(100) NOT NULL, timezone VARCHAR(100) NOT NULL, created_at VARCHAR(40) NOT NULL, photo_url TEXT, access_notes TEXT,
  preferred_window TEXT, safety_json JSON NOT NULL DEFAULT (JSON_OBJECT()), assigned_vendor_id VARCHAR(200),
  assigned_vendor_name VARCHAR(160), vendor_decision VARCHAR(32) CHECK(vendor_decision IN ('pending','accepted','declined')),
  verification_json JSON, PRIMARY KEY(workspace_id,id),
+ CONSTRAINT ck_requests_resident_binding CHECK((resident_user_id IS NULL AND resident_occupancy_id IS NULL) OR (resident_user_id IS NOT NULL AND resident_occupancy_id IS NOT NULL)),
  FOREIGN KEY(workspace_id,property_id) REFERENCES properties(workspace_id,id),
  FOREIGN KEY(workspace_id,assigned_vendor_id) REFERENCES vendors(workspace_id,id),
  UNIQUE KEY ux_request_property_reference(workspace_id,id,property_id),
  KEY ix_requests_queue(workspace_id,state,created_at),
  KEY ix_requests_unit(workspace_id,property_id,unit),
- KEY ix_requests_vendor(workspace_id,assigned_vendor_id,state)
+ KEY ix_requests_vendor(workspace_id,assigned_vendor_id,state),
+ KEY ix_requests_resident_access(workspace_id,resident_user_id,resident_occupancy_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_as_cs;
 
 CREATE TABLE request_locations (
@@ -170,10 +173,11 @@ CREATE TABLE IF NOT EXISTS common_area_issue_events (
  KEY ix_common_area_history(workspace_id,issue_id,at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_as_cs;
 
--- Mark the baseline compatible with the application's four versioned migrations.
+-- Mark the baseline compatible with the application's five versioned migrations.
 INSERT INTO schema_migrations(version,applied_at,completed,checksum) VALUES
  (1,DATE_FORMAT(UTC_TIMESTAMP(6),'%Y-%m-%dT%H:%i:%s.%f+00:00'),1,'B7500B2330F6FA15F9A94594F842432D58A4273445D56191FEF3F2B33BE3FFAD'),
  (2,DATE_FORMAT(UTC_TIMESTAMP(6),'%Y-%m-%dT%H:%i:%s.%f+00:00'),1,'DCFC6886F8C9586B511D122B2018A3959FBD882025E2C0EC737857F169A96CA0'),
  (3,DATE_FORMAT(UTC_TIMESTAMP(6),'%Y-%m-%dT%H:%i:%s.%f+00:00'),1,'6CE00719E7DC7C99A80DCF272FE54632E34F915E6B62225A4DFC52488D86D80E'),
- (4,DATE_FORMAT(UTC_TIMESTAMP(6),'%Y-%m-%dT%H:%i:%s.%f+00:00'),1,'A21F5F1DCC9608B1A442C5EACD3D6741F899EC93AB1FF2043BFE40B486E377E5');
+ (4,DATE_FORMAT(UTC_TIMESTAMP(6),'%Y-%m-%dT%H:%i:%s.%f+00:00'),1,'A21F5F1DCC9608B1A442C5EACD3D6741F899EC93AB1FF2043BFE40B486E377E5'),
+ (5,DATE_FORMAT(UTC_TIMESTAMP(6),'%Y-%m-%dT%H:%i:%s.%f+00:00'),1,'E793B24EF86ED751CA6D24431795733B6927BB967FE30A03AED5FF12511E5C11');
 

@@ -54,7 +54,7 @@ Then deploy with the runtime credential and AutoMigrate=false. Do not run the ap
 
 ## Migration safety
 
-Current schema version: 4. Embedded MySQL migrations live under apps/api/DatabaseScripts/MySql. Migration 004 adds gate presence and common-area operations for the resident/watchman mobile app. Use new numbered migrations for future changes; never edit an applied migration.
+Current schema version: **5**. Embedded MySQL migrations live under apps/api/DatabaseScripts/MySql. Migration 004 adds gate presence and common-area operations; 005 adds the paired resident account/occupancy binding and access index. Existing repairs are not automatically linked. Coordinate account provisioning and deployment using [the resident privacy guide](RESIDENT-PRIVACY.md). Use new numbered migrations for future changes; never edit an applied migration.
 
 MySQL DDL [implicitly commits](https://dev.mysql.com/doc/refman/8.4/en/implicit-commit.html). The runner therefore takes a database-specific GET_LOCK on one session, records a SHA-256 checksum and completed flag, and completes the version only after every statement succeeds. Interrupted runs remain unready and may retry the **same unchanged** migration: CREATE TABLE IF NOT EXISTS, guarded ALTER statements and insert-only backfills permit recovery. DDL is not rolled back when a later step fails. Back up real data and schedule a maintenance window.
 
@@ -72,7 +72,7 @@ db:check exit codes:
 
 | Exit | Meaning | Next action |
 | --- | --- | --- |
-| 0 | Schema version 4, required InnoDB tables, tracking columns, strict mode and SELECT access passed | Start the app; independently verify auth/storage and runtime write grants. |
+| 0 | Schema version 5, required InnoDB tables, tracking columns, strict mode and SELECT access passed | Start the app; independently verify auth/storage, resident provisioning and runtime write grants. |
 | 1 | Configuration, connection, TLS or permission check failed | Fix the settings privately. The command does not print raw connector errors or credentials. |
 | 2 | Connected, but schema/server settings are not ready | For a new empty database, apply migrations. For populated/incomplete installations, back up and investigate first. |
 
@@ -105,9 +105,10 @@ Tokens are verified through Supabase Auth's user endpoint with bounded HTTP time
 - workspace_id: organization ID; defaults to the authenticated user ID.
 - vendor_id: assigned-job access for vendors.
 - property_ids and property_units: tenants' exact authorized properties/labels.
+- resident_occupancies: tenants' dated occupancy UUIDs, property IDs, unit labels, starts_at and optional ends_at. Active occupancy and property/unit permission are both required; use a new UUID per period.
 - property_ids: watchmen's assigned buildings; gate/shared-area access only, never full resident repairs. See the mobile guide for account examples.
 
-Set metadata through trusted admin tooling, never editable user_metadata. Unknown roles fail closed. Unit-wide authorization is not occupancy-period privacy; implement lease-period access before tenant turnover.
+Set metadata through trusted admin tooling, never editable user_metadata. Unknown roles fail closed. Resident reads additionally require the repair's account/occupancy binding and a report date within that active period. Old property/unit-only accounts fail closed. Manager linking validates UUID format, not account existence; independently verify provisioning before linking. See [RESIDENT-PRIVACY.md](RESIDENT-PRIVACY.md) for metadata, legacy-record handling and turnover tests. No administrator account/lease UI is included.
 
 ## Evidence
 

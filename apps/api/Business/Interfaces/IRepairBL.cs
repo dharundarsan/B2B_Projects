@@ -4,6 +4,7 @@ public interface IRepairBL
 {
     Task<List<Repair>> List(Actor actor, CancellationToken ct, string? search = null, string? state = null, string? priority = null, string? property = null);
     Task<Repair> Create(Actor actor, CreateRepair input, CancellationToken ct);
+    Task<Repair> LinkResident(Actor actor, string id, ResidentLinkInput input, CancellationToken ct, long? revision);
     Task<Repair> Transition(Actor actor, string id, TransitionInput input, CancellationToken ct, long? revision);
     Task<Repair> Offer(Actor actor, string id, OfferInput input, CancellationToken ct, long? revision);
     Task<Repair> VendorResponse(Actor actor, string id, VendorResponseInput input, CancellationToken ct, long? revision);

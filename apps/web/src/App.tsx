@@ -73,6 +73,8 @@ import {
 import { useObjectUrl } from "./hooks/useObjectUrl";
 import { useOverlayFocus } from "./hooks/useOverlayFocus";
 import { CommonAreaSection } from "./features/CommonAreaSection";
+import { ResidentLinkPanel } from "./features/ResidentLinkPanel";
+import { clearResidentDraft, readResidentDraft, residentLinkPayload, residentUnitChoice, saveResidentDraft } from "./features/residentPrivacy";
 import {
   RequestBoard,
   RequestCard,
@@ -317,6 +319,7 @@ function LanguageMenu({ compact = false }: { compact?: boolean }) {
 
 const RoleContext = createContext({
   role: "demo",
+  userId: "demo-owner",
   displayName: "Maya Chen",
   workspaceName: "Oak Street Rentals",
 });
@@ -340,20 +343,23 @@ function AuthGate() {
       return;
     }
     let active = true;
+    let observedEvent = false;
     supabase.auth
       .getSession()
       .then(({ data }) => {
-        if (active) {
+        if (active && !observedEvent) {
           setSession(data.session);
           setReady(true);
         }
       })
       .catch(() => {
-        if (active) setReady(true);
+        if (active && !observedEvent) setReady(true);
       });
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, next) => {
+      if (!active) return;
+      observedEvent = true;
       setSession(next);
       setReady(true);
     });
@@ -400,8 +406,8 @@ function AuthGate() {
       ? session.user.app_metadata.workspace_name
       : "Your workspace";
   return (
-    <RoleContext.Provider value={{ role, displayName, workspaceName }}>
-      <ProductRoutes />
+    <RoleContext.Provider value={{ role, displayName, workspaceName, userId: session?.user.id ?? "demo-owner" }}>
+      <ProductRoutes key={session?.user.id ?? "demo-owner"} />
     </RoleContext.Provider>
   );
 }
@@ -1910,7 +1916,7 @@ function NewRequest() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     title: "",
-    property: "",
+    propertyId: "",
     unit: "",
     resident: "",
     category: "Plumbing",
@@ -1923,12 +1929,15 @@ function NewRequest() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [properties, setProperties] = useState<PropertyRecord[]>([]);
+  const [linkResident, setLinkResident] = useState(false);
+  const [residentUserId, setResidentUserId] = useState("");
+  const [residentOccupancyId, setResidentOccupancyId] = useState("");
   useEffect(() => {
     api
       .properties()
       .then(({ data }) => {
         setProperties(data);
-        setForm((current) => ({ ...current, property: data[0]?.name ?? "" }));
+        setForm((current) => ({ ...current, propertyId: data[0]?.id ?? "" }));
       })
       .catch((reason) =>
         setError(
@@ -1947,6 +1956,7 @@ function NewRequest() {
     try {
       const { data } = await api.createRequest({
         ...form,
+        ...residentLinkPayload(linkResident, residentUserId, residentOccupancyId),
         priority: form.priority as "urgent" | "routine",
         language: "en-US",
       });
@@ -1975,7 +1985,7 @@ function NewRequest() {
         title="Create a maintenance request"
         description="Capture enough context for a safe first visit."
       />
-      {error ? <ErrorNotice message={error} onRetry={() => undefined} /> : null}
+      {error ? <div className="notice danger" role="alert"><AlertCircle size={18} /><span>{error}</span></div> : null}
       <form className="surface form-card" onSubmit={submit}>
         <div className="form-section">
           <span className="label">REQUEST DETAILS</span>
@@ -2006,14 +2016,11 @@ function NewRequest() {
             <label>
               Property
               <select
-                value={form.property}
-                onChange={(event) => update("property", event.target.value)}
+                required
+                value={form.propertyId}
+                onChange={(event) => { update("propertyId", event.target.value); setLinkResident(false); setResidentUserId(""); setResidentOccupancyId(""); }}
               >
-                {properties
-                  .map((property) => property.name)
-                  .map((name) => (
-                    <option key={name}>{name}</option>
-                  ))}
+                {properties.map(property => <option key={property.id} value={property.id}>{property.name} · {property.address}</option>)}
               </select>
             </label>
             <label>
@@ -2021,12 +2028,14 @@ function NewRequest() {
               <input
                 required
                 value={form.unit}
-                onChange={(event) => update("unit", event.target.value)}
+                onChange={(event) => { update("unit", event.target.value); setLinkResident(false); setResidentUserId(""); setResidentOccupancyId(""); }}
               />
             </label>
             <label>
               Resident
               <input
+                required
+                maxLength={160}
                 value={form.resident}
                 onChange={(event) => update("resident", event.target.value)}
                 placeholder="Resident name"
@@ -2053,6 +2062,16 @@ function NewRequest() {
               placeholder="Describe what is happening, when it started and any immediate risks."
             />
           </label>
+        </div>
+        <div className="form-section resident-access-panel">
+          <span className="label">RESIDENT HISTORY PRIVACY</span>
+          <h2>Who can view this report?</h2>
+          <p>Managers retain the repair history. A resident name or apartment label never grants access to somebody else's reports.</p>
+          <label className="resident-access-toggle"><input type="checkbox" checked={linkResident} onChange={event => setLinkResident(event.target.checked)} /> Link this repair to a provisioned resident account</label>
+          {linkResident ? <><p id="intake-resident-help">Copy the account and occupancy UUIDs from trusted Supabase app metadata. The assignment must match this property/unit and cover the report date. This does not create an account or grant permissions.</p><div className="form-grid two">
+            <label>Resident account UUID<input required maxLength={36} autoComplete="off" value={residentUserId} aria-describedby="intake-resident-help" onChange={event => setResidentUserId(event.target.value)} /></label>
+            <label>Occupancy UUID<input required maxLength={36} autoComplete="off" value={residentOccupancyId} aria-describedby="intake-resident-help" onChange={event => setResidentOccupancyId(event.target.value)} /></label>
+          </div></> : <p>Unlinked: visible to managers and the assigned vendor only. Link a provisioned resident later from the repair workspace.</p>}
         </div>
         <div className="form-section">
           <span className="label">ACCESS AND TIMING</span>
@@ -2259,6 +2278,7 @@ function RequestWorkspace() {
         </div>
       ) : null}
       <RepairProgress request={detail} />
+      <ResidentLinkPanel key={detail.id} repair={detail} onLinked={setDetail} />
       <div className="request-layout">
         <div className="request-main">
           <div className="workspace-tabs">
@@ -4401,15 +4421,22 @@ function PublicHeader({
 }
 
 function TenantHome() {
+  const { role } = useContext(RoleContext);
   const {
-    data: items,
+    data: { items, hasAssignment },
     loading,
     error,
     refresh,
     lastLoadedAt,
   } = useApiResource(
-    useCallback((signal) => api.requests({}, signal), []),
-    [] as RequestRecord[],
+    useCallback(async (signal: AbortSignal) => {
+      const [repairs, context] = await Promise.all([
+        api.requests({}, signal),
+        role === "tenant" ? api.residentContext(signal) : Promise.resolve(null),
+      ]);
+      return { data: { items: repairs.data, hasAssignment: role !== "tenant" || !!context?.data.properties.some(property => property.units.length > 0) } };
+    }, [role]),
+    { items: [] as RequestRecord[], hasAssignment: false },
   );
   const [view, setView] = useState<"open" | "action" | "history">("open");
   const open = items.filter(isOpen);
@@ -4427,12 +4454,12 @@ function TenantHome() {
       <PublicHeader
         eyebrow="YOUR HOME · YOUR REPAIRS"
         title="My repairs"
-        description="Track progress, agree a visit and tell us whether the repair is fixed. Your messages stay with each repair."
+        description="Track progress, agree a visit and tell us whether the repair is fixed. Private history belongs to your account and current occupancy, not everyone who has lived in your apartment."
       />
       <div className="resident-home-actions">
-        <Link to="/tenant/report" className="button primary">
+        {hasAssignment ? <Link to="/tenant/report" className="button primary">
           <Plus size={16} /> Report an issue
-        </Link>
+        </Link> : null}
         <Button variant="secondary" onClick={refresh} disabled={loading}>
           <RefreshCw size={15} /> Refresh
         </Button>
@@ -4441,6 +4468,8 @@ function TenantHome() {
         <LoadingState label="Loading your repairs…" />
       ) : error ? (
         <ErrorNotice message={error} onRetry={refresh} />
+      ) : !hasAssignment ? (
+        <EmptyState title="No active apartment assignment" detail="Ask your manager to provision a dated occupancy for your account, building and apartment. Refresh after it is assigned. Previous occupants' private repairs are not shared with a new assignment." />
       ) : (
         <>
           <div className="resident-filters" aria-label="Repair lists">
@@ -4520,6 +4549,7 @@ function TenantHome() {
 
 function TenantReport() {
   const { language } = useContext(LanguageContext);
+  const { userId, role, displayName } = useContext(RoleContext);
   const [properties, setProperties] = useState<PropertyRecord[]>([]);
   const [propertyId, setPropertyId] = useState("");
   const [unit, setUnit] = useState("");
@@ -4551,29 +4581,39 @@ function TenantReport() {
         ? sparks === "Yes"
         : false;
 
+  const { data: assignment, loading: unitsLoading, error: unitsError, refresh: refreshUnits } = useApiResource(
+    useCallback(async (signal: AbortSignal) => {
+      if (!propertyId || role !== "tenant") return { data: { propertyId, units: [] as string[] } };
+      const { data } = await api.residentContext(signal);
+      return { data: { propertyId, units: data.properties.find(item => item.id === propertyId)?.units ?? [] } };
+    }, [propertyId, role]),
+    { propertyId: "", units: [] as string[] },
+  );
+  const assignedUnits = assignment.propertyId === propertyId ? assignment.units : [];
+  const assignmentPending = unitsLoading || !unitsError && assignment.propertyId !== propertyId;
+  useEffect(() => {
+    if (role === "tenant")
+      setUnit(current => residentUnitChoice(current, propertyId, assignment.propertyId, assignment.units, unitsLoading, unitsError));
+  }, [assignment, propertyId, role, unitsLoading, unitsError]);
+  const apartmentReady = role !== "tenant" || !assignmentPending && !unitsError && assignedUnits.includes(unit);
+
   useEffect(() => {
     let active = true;
     let savedPropertyId = "";
-    const draft = localStorage.getItem("repairledger-report-draft");
+    const draft = readResidentDraft(userId);
     if (draft) {
-      try {
-        const saved = JSON.parse(draft);
-        savedPropertyId =
-          typeof saved.propertyId === "string" ? saved.propertyId : "";
-        setCategory(saved.category ?? "Plumbing");
-        setDescription(saved.description ?? "");
-        setUnit(saved.unit ?? "");
-        setResident(saved.resident ?? "");
-        setPermission(saved.permission ?? "Resident must be home");
-        setAvailability(saved.availability ?? "Flexible");
-        setNotes(saved.notes ?? "");
-        setFlowing(saved.flowing ?? "No");
-        setNearElectricity(saved.nearElectricity ?? "No");
-        setSparks(saved.sparks ?? "No");
-        setStep(Math.max(1, Math.min(4, saved.step ?? 1)));
-      } catch {
-        localStorage.removeItem("repairledger-report-draft");
-      }
+      savedPropertyId = draft.propertyId;
+      setCategory(draft.category);
+      setDescription(draft.description);
+      setUnit(draft.unit);
+      setResident(draft.resident);
+      setPermission(draft.permission);
+      setAvailability(draft.availability);
+      setNotes(draft.notes);
+      setFlowing(draft.flowing);
+      setNearElectricity(draft.nearElectricity);
+      setSparks(draft.sparks);
+      setStep(Math.max(1, Math.min(4, draft.step)));
     }
     api
       .properties()
@@ -4599,20 +4639,16 @@ function TenantReport() {
       .finally(() => {
         if (active) setLoading(false);
       });
-    if (supabase)
-      supabase.auth.getUser().then(({ data }) => {
-        const displayName = data.user?.user_metadata?.name;
-        if (typeof displayName === "string") setResident(displayName);
-      });
+    if (!draft) setResident(displayName);
     return () => {
       active = false;
     };
-  }, []);
+  }, [userId, displayName]);
 
   const saveDraft = () => {
-    localStorage.setItem(
-      "repairledger-report-draft",
-      JSON.stringify({
+    saveResidentDraft(
+      userId,
+      {
         propertyId,
         category,
         description,
@@ -4625,9 +4661,9 @@ function TenantReport() {
         nearElectricity,
         sparks,
         step,
-      }),
+      },
     );
-    setUploadStatus("Draft saved on this device.");
+    setUploadStatus("Draft saved for this signed-in tab only. Reloading, closing the tab or signing out clears it; photos are not saved.");
   };
   const selectFile = (next?: File) => {
     if (!next) return;
@@ -4643,6 +4679,11 @@ function TenantReport() {
     setUploadStatus("Selected. It will upload after you submit the repair.");
   };
   const submit = async () => {
+    if (saving) return;
+    if (!apartmentReady) {
+      setError("Return to the apartment step and refresh your current assignment before submitting.");
+      return;
+    }
     if (!property || !unit.trim() || !resident.trim() || !description.trim()) {
       setError(
         "Choose your property and unit, enter your name, and describe the issue.",
@@ -4692,13 +4733,13 @@ function TenantReport() {
         setUploadStatus(
           "Sample mode: file preview only; it is not saved to storage.",
         );
-      localStorage.removeItem("repairledger-report-draft");
+      clearResidentDraft();
       setSubmittedId(data.id);
     } catch (reason) {
       setError(
         reason instanceof Error
           ? reason.message
-          : "We could not save the request. Your draft remains on this device.",
+          : "We could not save the request. Your entries remain on this page.",
       );
     } finally {
       setSaving(false);
@@ -4711,6 +4752,8 @@ function TenantReport() {
         <LoadingState label="Loading your property details…" />
       </PublicShell>
     );
+  if (!error && !properties.length)
+    return <PublicShell><PublicHeader eyebrow="Account setup" title="No active apartment assignment" description="Ask your manager to provision your account with a dated occupancy assignment for your building and unit. The app cannot grant itself access to a previous resident's history." /><Link to="/tenant" className="button secondary">Back to My repairs</Link></PublicShell>;
   if (submittedId)
     return (
       <PublicShell>
@@ -4772,12 +4815,14 @@ function TenantReport() {
         <div className="form-grid two">
           <label>
             Unit
-            <input
+            {role === "tenant" ? <select value={unit} disabled={assignmentPending || !!unitsError || !assignedUnits.length} onChange={event => setUnit(event.target.value)}>
+              {!assignedUnits.length ? <option value="">{assignmentPending ? "Loading assigned apartments…" : unitsError ? "Apartments could not be loaded" : "No active apartment assignment"}</option> : assignedUnits.map(label => <option key={label} value={label}>{label}</option>)}
+            </select> : <input
               required
               value={unit}
               onChange={(event) => setUnit(event.target.value)}
               placeholder="e.g. 3B"
-            />
+            />}
           </label>
           <label>
             Your name
@@ -4800,13 +4845,15 @@ function TenantReport() {
           selected={category}
           onSelect={setCategory}
         />
+        {unitsError ? <ErrorNotice message={unitsError} onRetry={refreshUnits} /> : null}
+        {role === "tenant" && !assignmentPending && !unitsError && !assignedUnits.length ? <p className="notice" role="status">Your apartment assignment is not active. Ask your manager to check its dates and permissions, then <button type="button" className="text-link" onClick={refreshUnits}>refresh your assignment</button>.</p> : null}
         <div className="public-actions">
           <Button variant="secondary" onClick={saveDraft}>
             Save draft
           </Button>
           <Button
             onClick={next}
-            disabled={!property || !unit.trim() || !resident.trim()}
+            disabled={!property || !unit.trim() || !resident.trim() || !apartmentReady}
           >
             Describe issue <ArrowRight size={16} />
           </Button>
@@ -5011,7 +5058,7 @@ function TenantReport() {
           <Button variant="secondary" onClick={() => setStep(3)}>
             Back
           </Button>
-          <Button onClick={() => void submit()} disabled={saving}>
+          <Button onClick={() => void submit()} disabled={saving || !apartmentReady}>
             {saving ? "Saving repair…" : "Submit repair"}{" "}
             <ArrowRight size={16} />
           </Button>

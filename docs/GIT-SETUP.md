@@ -21,13 +21,13 @@ GitHub associates commits with an account through an email belonging to that acc
 
 ## Push authentication
 
-The personal GitHub username and repository URL are still needed to finish the remote/account selection. No remote has been invented, no GitHub repository has been created, and no code has been pushed.
+The configured HTTPS remote is [dharundarsan/B2B_Projects](https://github.com/dharundarsan/B2B_Projects). `main` tracks `origin/main`, and you have completed the first push. Subsequent implementation changes are left uncommitted for your review; no automatic commit or push is performed.
 
-The checkout has `credential.namespace=repairledger-personal` and `credential.https://github.com.useHttpPath=true`. These settings apply here only, keeping its GCM credential lookup separate from the default work namespace. They are not a completed personal-account login. Once the correct GitHub login is known, a repository-local `credential.https://github.com.username` can select it; configure `origin` only with your actual repository URL. Sign in to the personal account when Git first requests authentication. Do not paste a token into a remote URL, source file or chat.
+The checkout has `credential.namespace=repairledger-personal`, `credential.https://github.com.useHttpPath=true` and `credential.https://github.com.username=dharundarsan`. Its local GitHub helper list resets inherited helpers with an empty `helper` entry and then uses `manager`. That reset matters: an inherited GitHub CLI helper previously selected the work account despite the personal commit email. These settings apply here only; the default work namespace and global configuration remain unchanged. Your personal Git Credential Manager sign-in supplies push credentials. Do not paste a token into a remote URL, source file or chat.
 
 GitHub CLI currently remains signed into the existing work account. Do not use `gh repo create`, `gh auth switch`, or an editor's **Publish to GitHub** action assuming this commit email changes its signed-in account. Those clients have their own account selection. Ordinary `git push` over HTTPS uses the repository's Git/GCM settings. See [GCM's multiple-account guide](https://github.com/git-ecosystem/git-credential-manager/blob/main/docs/multiple-users.md).
 
-## Review before the first push
+## Review before each push
 
 ```powershell
 git status --short
@@ -37,4 +37,4 @@ git remote -v
 
 Review the files before staging or committing. The ignore rules exclude dependency/build folders, private environment files, private application settings, local databases, credential files and generated TypeScript artifacts. Configuration examples and public application defaults remain available. Ignore rules are a safeguard, not a secret scanner; review configuration/source changes yourself and never force-add secrets.
 
-No files have been staged or committed automatically. Production readiness limitations remain in [the final handoff guide](../FINAL-HANDOFF.md).
+New changes are not staged or committed automatically. A fresh clone needs equivalent repository-local identity/authentication settings; this document does not change global work authentication. Production readiness limitations remain in [the final handoff guide](../FINAL-HANDOFF.md).

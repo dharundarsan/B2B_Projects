@@ -408,6 +408,23 @@ test("invalid display timezone falls back to explicitly labeled UTC", () =>
   assert.match(formatDate("2026-10-01T10:00:00Z", "Bad/Zone"), /UTC$/));
 test("empty quotes do not throw or invent an amount", () =>
   assert.deepEqual(approvedQuoteTotals([repair({ estimates: [] })]), []));
+
+test("resident-safe quote status retains the real next responsible party without financial data", () => {
+  for (const [quoteStatus, owner, title] of [
+    ["submitted", "Manager", "Review vendor quote"],
+    ["approved", "Manager", "Propose a visit"],
+    ["changes_requested", "Vendor", "Revise the quote"],
+  ]) {
+    const safe = repair({ state: "assigned", vendorDecision: "accepted", vendorAssigned: true, estimate: undefined, estimates: [], quoteStatus });
+    assert.equal(nextStep(safe).owner, owner); assert.equal(nextStep(safe).title, title);
+    assert.deepEqual(approvedQuoteTotals([safe]), []);
+  }
+});
+
+test("a hidden vendor identifier does not invent a missing assignment", () => {
+  const safe = repair({ state: "assigned", vendorAssigned: true, assignedVendorId: undefined, vendorDecision: undefined });
+  assert.equal(managerAction(safe), null);
+});
 test("approved totals keep currencies separate", () => {
   const records = [
     repair({

@@ -12,6 +12,8 @@ public sealed class RequestsController(IRepairBL business, Actor actor) : Repair
     { var repair = await business.Get(Actor, id, ct); Response.Headers.ETag = $"\"{repair.Revision}\""; return Data(repair); }
     [HttpPost]
     public async Task<object> Create(CreateRepair input, CancellationToken ct) => Data(await business.Create(Actor, input, ct));
+    [HttpPost("{id}/resident-link")]
+    public async Task<object> LinkResident(string id, ResidentLinkInput input, CancellationToken ct) => Data(await business.LinkResident(Actor, id, input, ct, Revision()));
     [HttpPost("{id}/transition")]
     public async Task<object> Transition(string id, TransitionInput input, CancellationToken ct) => Data(await business.Transition(Actor, id, input, ct, Revision()));
     [HttpPost("{id}/offer")]

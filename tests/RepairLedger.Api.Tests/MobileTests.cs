@@ -21,7 +21,8 @@ public sealed class MobileTests : IAsyncLifetime
     private RepairDAL repairs = null!;
     private MobileBL mobile = null!;
     private static readonly Actor Owner = new("owner", "workspace", "owner", "owner@example.test", null, []);
-    private static readonly Actor Resident = new("resident", "workspace", "tenant", "resident@example.test", null, new() { ["p1"] = ["204"] });
+    private static readonly Actor Resident = new("resident", "workspace", "tenant", "resident@example.test", null, new() { ["p1"] = ["204"] },
+        ResidentOccupancies: [new("22222222-2222-4222-8222-222222222222", "p1", "204", DateTimeOffset.UtcNow.AddYears(-1), null)]);
     private static readonly Actor Watchman = new("watchman", "workspace", "watchman", "watchman@example.test", null, [], ["p1"]);
     public async Task InitializeAsync()
     {
@@ -77,6 +78,21 @@ public sealed class MobileTests : IAsyncLifetime
         var fake = Watchman with { AssignedPropertyIds = null, PropertyUnits = new() { ["p1"] = ["204"] } };
         Assert.Empty((await mobile.Context(fake, default)).Properties); Assert.Empty(await mobile.Visits(fake, default));
         Assert.Equal(403, (await Assert.ThrowsAsync<ApiException>(() => mobile.Visits(Resident, default))).Status);
+    }
+    [Fact]
+    public async Task Active_assignment_can_create_its_first_private_repair_without_a_preexisting_unit_row()
+    {
+        Assert.Empty(await repairs.Units(Owner, "p1", default));
+        var context = await mobile.Context(Resident, default);
+        Assert.Equal("204", Assert.Single(Assert.Single(context.Properties).Units));
+        var repair = await new RepairBL(repairs).Create(Resident,
+            new("First apartment report", null, "p1", "204", "Resident", "Plumbing", "The tap is leaking"), default);
+        Assert.True(repair.ResidentLinked); Assert.Equal(Resident.Id, repair.ResidentUserId);
+        Assert.Equal(Resident.ResidentOccupancies![0].Id, repair.ResidentOccupancyId);
+        Assert.Equal(repair.UnitId, Assert.Single(await repairs.Units(Resident, "p1", default)).Id);
+        Assert.Equal(repair.Id, Assert.Single(await repairs.List(Resident, default)).Id);
+        Assert.Equal(403, (await Assert.ThrowsAsync<ApiException>(() => new RepairBL(repairs).Create(Resident,
+            new("Unauthorized apartment", null, "p1", "205", "Resident", "Plumbing", "The tap is leaking"), default))).Status);
     }
     [Fact]
     public async Task Watchman_never_receives_full_repairs_or_sensitive_fields()

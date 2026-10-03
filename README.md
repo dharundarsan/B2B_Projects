@@ -16,7 +16,9 @@ RepairLedger-app-source/
 
 For the combined web/mobile source snapshot, installation order, verification results and release limitations, start with [the final handoff guide](FINAL-HANDOFF.md).
 
-A separate [React Native mobile app](apps/mobile/README.md) now supports apartment residents and watchmen. Install its dependencies in `apps/mobile`; it does not replace or upgrade the web app's React workspace. Run `npm run preview:mobile` for local sample-data previews or `npm run dev:mobile` for the configured app. Schema migration 004 is required for live mobile operations.
+A separate [React Native mobile app](apps/mobile/README.md) now supports apartment residents and watchmen. Install its dependencies in `apps/mobile`; it does not replace or upgrade the web app's React workspace. Run `npm run preview:mobile` for local sample-data previews or `npm run dev:mobile` for the configured app. Apply migrations through **005** for live operations (004 adds mobile tables; 005 adds resident privacy).
+
+Resident access now requires an account-specific, dated occupancy assignment, not just a unit label. Existing repairs remain unlinked until a manager explicitly links an eligible account and period. Read [the resident provisioning and rollout guide](docs/RESIDENT-PRIVACY.md) before enabling real resident accounts; property/unit-only metadata is no longer sufficient.
 
 ## Run on Windows
 Requirements: Node.js 22.6+ with npm (Node 24 was tested), the .NET 10 SDK, and MySQL 8.4 LTS. Install the SDK on your machine; this extracted source does not contain `.tools`. The npm scripts use an optional private `.tools/dotnet` SDK only when present, otherwise your installed `dotnet`.

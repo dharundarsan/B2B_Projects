@@ -2,6 +2,8 @@
 
 Reviewed and implemented on 2 October 2026 in `D:\B2B\RepairLedger-app-source`.
 
+**Subsequent update, 3 October 2026:** the main Git checkout is now `D:\B2B\RepairLedger-Web-and-Mobile-Final\RepairLedger-app-source`. Account/occupancy-specific resident access, response allowlisting, explicit manager linking and account-scoped memory-only drafts are implemented in schema 005. See [the resident privacy and rollout guide](RESIDENT-PRIVACY.md). The review and priorities below retain their original date and are not a claim that every roadmap item has been implemented.
+
 ## Product decision
 
 RepairLedger should be the maintenance decision desk for landlords with 5–50 units, not another broad property-management suite. The promise is: **know who acts next, what is actually agreed, and whether the resident's problem was fixed.**

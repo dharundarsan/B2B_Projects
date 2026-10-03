@@ -27,7 +27,12 @@ public sealed class RepairBL(IRepairDAL repository) : IRepairBL
         var property = (await repository.Properties(actor, ct)).SingleOrDefault(p => input.PropertyId != null ? p.Id == input.PropertyId : p.Name == input.Property);
         if (property == null) throw new ApiException(400, "Select an active property in your workspace.");
         var unit = Text(input.Unit, "Unit", 1, 40);
-        if (!actor.IsManager && (!actor.PropertyUnits.TryGetValue(property.Id, out var units) || !units.Contains(unit))) throw new ApiException(403, "You can only report repairs for your assigned unit.");
+        if (!actor.IsManager && (!actor.ResidentUnits.TryGetValue(property.Id, out var units) || !units.Contains(unit))) throw new ApiException(403, "You can only report repairs for an active assigned occupancy.");
+        string? residentUser = null, occupancy = null;
+        if (actor.IsManager && (input.ResidentUserId != null || input.ResidentOccupancyId != null))
+        {
+            (residentUser, occupancy) = ResidentBinding(input.ResidentUserId, input.ResidentOccupancyId);
+        }
         if (input.Priority is not ("routine" or "urgent")) throw new ApiException(400, "Invalid priority.");
         var safety = input.SafetyAnswers ?? [];
         if (safety.Count > 20 || safety.Any(x => x.Key.Length > 80 || x.Value == null || x.Value.Length > 200)) throw new ApiException(400, "Invalid safety answers.");
@@ -44,6 +49,8 @@ public sealed class RepairBL(IRepairDAL repository) : IRepairBL
             PropertyId = property.Id,
             Unit = unit,
             Resident = Text(input.Resident, "Resident", 1, 160),
+            ResidentUserId = residentUser,
+            ResidentOccupancyId = occupancy,
             Category = category,
             Description = Text(input.Description, "Description", 3, 4000),
             Priority = urgent ? "urgent" : "routine",
@@ -58,6 +65,25 @@ public sealed class RepairBL(IRepairDAL repository) : IRepairBL
         };
         Event(r, actor, "received", "Repair reported", r.Description);
         return await repository.Create(actor, r, ct);
+    }
+    private static (string User, string Occupancy) ResidentBinding(string? user, string? occupancy)
+    {
+        if (!Guid.TryParseExact(user, "D", out var userId) || userId == Guid.Empty ||
+            !Guid.TryParseExact(occupancy, "D", out var occupancyId) || occupancyId == Guid.Empty)
+            throw new ApiException(400, "Provide both the resident account UUID and occupancy UUID, or leave both unlinked.");
+        return (userId.ToString("D"), occupancyId.ToString("D"));
+    }
+    public Task<Repair> LinkResident(Actor actor, string id, ResidentLinkInput input, CancellationToken ct, long? revision)
+    {
+        actor.RequireManager();
+        var binding = ResidentBinding(input.ResidentUserId, input.ResidentOccupancyId);
+        if (revision == null) throw new ApiException(400, "Refresh this repair and supply its If-Match revision before linking resident access.");
+        return repository.Mutate(actor, id, r =>
+        {
+            Guard(!r.ResidentLinked, "Resident access is already linked. History cannot be transferred to another account or occupancy.");
+            r.ResidentUserId = binding.User; r.ResidentOccupancyId = binding.Occupancy;
+            Event(r, actor, "resident-link", "Resident portal access linked", "Provisioned account and occupancy identifiers recorded; dated assignment checks still apply.");
+        }, ct, revision);
     }
     public static void Event(Repair r, Actor actor, string type, string label, string detail)
         => r.Events.Add(new Activity { RequestId = r.Id, Type = type, Label = label, Detail = detail, Actor = actor.Email });

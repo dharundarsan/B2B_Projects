@@ -7,7 +7,7 @@ namespace RepairLedger.Api.Helpers;
 public sealed class DatabaseMigrationHelper(IConnectionHelper connection, ISqlFileQueryHelper sql, IDapperHelper dapper,
     IConfiguration configuration, ILogger<DatabaseMigrationHelper> logger)
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 5;
     public async Task Initialize(CancellationToken ct)
     {
         await using var db = await connection.Open(ct);
