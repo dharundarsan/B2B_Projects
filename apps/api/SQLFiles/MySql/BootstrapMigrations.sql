@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY,applied_at VARCHAR(40) NOT NULL,completed INTEGER NOT NULL DEFAULT 1 CHECK(completed IN (0,1)),checksum CHAR(64)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_as_cs

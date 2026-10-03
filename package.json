@@ -1,0 +1,36 @@
+{
+  "name": "repairledger-app",
+  "private": true,
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev:mobile": "node scripts/check-node.cjs && npm --prefix apps/mobile start",
+    "preview:mobile": "node scripts/check-node.cjs && npm --prefix apps/mobile run preview",
+    "typecheck:mobile": "npm --prefix apps/mobile run typecheck",
+    "test:mobile": "npm --prefix apps/mobile test",
+    "dev": "node scripts/check-node.cjs && concurrently \"npm run dev:web\" \"npm run dev:api\"",
+    "dev:web": "npm run dev --workspace apps/web",
+    "dev:api": "node scripts/dotnet.cjs dev",
+    "db:check": "node scripts/dotnet.cjs check-db",
+    "db:migrate": "node scripts/dotnet.cjs migrate",
+    "test:scripts": "node --test scripts/dotnet.test.cjs",
+    "test:web": "npm run test --workspace apps/web",
+    "build": "node scripts/check-node.cjs && npm run build:web && npm run build:api",
+    "build:web": "npm run build --workspace apps/web",
+    "build:api": "node scripts/dotnet.cjs build",
+    "typecheck": "node scripts/check-node.cjs && npm run typecheck:web && npm run typecheck:api",
+    "typecheck:web": "npm run typecheck --workspace apps/web",
+    "typecheck:api": "node scripts/dotnet.cjs build",
+    "start": "node scripts/check-node.cjs && concurrently \"npm run start:web\" \"npm run start:api\"",
+    "start:web": "npm run preview --workspace apps/web",
+    "start:api": "node scripts/dotnet.cjs start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

@@ -1,0 +1,10 @@
+**/node_modules
+**/bin
+**/obj
+**/dist
+**/.env*
+**/*.db*
+**/appsettings.Local.json
+.tools
+.git
+migration-export

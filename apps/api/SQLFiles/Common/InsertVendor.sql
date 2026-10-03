@@ -1,0 +1,1 @@
+INSERT INTO vendors(workspace_id,id,name,email,phone,trade,distance,availability,first_visit_fixes,status) VALUES(@WorkspaceId,@Id,@Name,@Email,@Phone,@Trade,@Distance,@Availability,@FirstVisitFixes,@Status)
