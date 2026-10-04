@@ -5,7 +5,7 @@ SELECT workspaces.*, properties.*, property_units.*, requests.*, request_locatio
 FROM workspaces, properties, property_units, requests, request_locations, vendors, vendor_offers,
  events, estimates, appointments, evidence, messages, request_verifications, notifications, notification_reads,
  gate_presence, common_area_issues, common_area_issue_events
-WHERE 1=0
+WHERE 1=0;
 -- Community v6
 SELECT * FROM users WHERE 1=0;
 SELECT * FROM user_memberships WHERE 1=0;
@@ -32,3 +32,8 @@ SELECT * FROM community_audit WHERE 1=0;
 SELECT * FROM community_receipts WHERE 1=0;
 SELECT * FROM community_agreement_units WHERE 1=0;
 SELECT * FROM community_expense_allocations WHERE 1=0;
+-- Community structure and expected deliveries v9
+SELECT * FROM community_blocks WHERE 1=0;
+SELECT * FROM community_unit_locations WHERE 1=0;
+SELECT * FROM community_block_layouts WHERE 1=0;
+SELECT * FROM community_deliveries WHERE 1=0;

@@ -97,7 +97,7 @@ export function ProviderSetup({ data: d, role, mutate, busy }: ModuleProps) {
       {directory.error && (
         <ErrorNotice message={directory.error} onRetry={directory.refresh} />
       )}
-      <Form
+      {(d.canManage || !providers.some((p) => p.status !== "rejected")) && <Form
         title={
           d.canManage
             ? "Add store / provider"
@@ -140,7 +140,10 @@ export function ProviderSetup({ data: d, role, mutate, busy }: ModuleProps) {
         onSubmit={(v) =>
           mutate("sellers", { ...v, userId: d.canManage ? v.userId : null })
         }
-      />
+      />}
+      {!d.canManage && providers.some((p) => p.status === "suspended") && (
+        <p className="ch-info">Your provider profile is suspended. Contact your community administrator to restore access.</p>
+      )}
       {!providers.length && (
         <None>
           No provider profiles yet. Register one here to start offering products

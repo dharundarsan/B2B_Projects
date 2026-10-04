@@ -12,17 +12,55 @@ import {
 } from "../src/features/community/management.ts";
 
 test("delivery tasks respect property-local day and recipient responsibilities", () => {
-  const data={property:{timezone:"Asia/Kolkata"},userId:"me",canManage:false,canGate:true,deliveries:[
-    {id:"today",userId:"other",status:"expected",approval:"approved",expectedAt:"2026-10-04T22:00:00Z"},
-    {id:"yesterday",userId:"other",status:"expected",approval:"approved",expectedAt:"2026-10-04T12:00:00Z"},
-    {id:"bulk",userId:"other",status:"expected",approval:"pending",expectedAt:"2026-10-04T22:00:00Z"},
-    {id:"mine",userId:"me",status:"accepted",approval:"approved"},
-    {id:"other",userId:"other",status:"accepted",approval:"approved"}
-  ]};
-  const now=new Date("2026-10-05T00:00:00Z");
-  assert.deepEqual(deliveryTasks(data,now).map(r=>r.id),["today"]);
-  assert.deepEqual(deliveryTasks({...data,canManage:true},now).map(r=>r.id),["today","bulk"]);
-  assert.deepEqual(deliveryTasks({...data,canGate:false},now).map(r=>r.id),["mine"]);
+  const data = {
+    property: { timezone: "Asia/Kolkata" },
+    userId: "me",
+    canManage: false,
+    canGate: true,
+    deliveries: [
+      {
+        id: "today",
+        userId: "other",
+        status: "expected",
+        approval: "approved",
+        expectedAt: "2026-10-04T22:00:00Z",
+      },
+      {
+        id: "yesterday",
+        userId: "other",
+        status: "expected",
+        approval: "approved",
+        expectedAt: "2026-10-04T12:00:00Z",
+      },
+      {
+        id: "bulk",
+        userId: "other",
+        status: "expected",
+        approval: "pending",
+        expectedAt: "2026-10-04T22:00:00Z",
+      },
+      { id: "mine", userId: "me", status: "accepted", approval: "approved" },
+      {
+        id: "other",
+        userId: "other",
+        status: "accepted",
+        approval: "approved",
+      },
+    ],
+  };
+  const now = new Date("2026-10-05T00:00:00Z");
+  assert.deepEqual(
+    deliveryTasks(data, now).map((r) => r.id),
+    ["today"],
+  );
+  assert.deepEqual(
+    deliveryTasks({ ...data, canManage: true }, now).map((r) => r.id),
+    ["today", "bulk"],
+  );
+  assert.deepEqual(
+    deliveryTasks({ ...data, canGate: false }, now).map((r) => r.id),
+    ["mine"],
+  );
 });
 
 test("admin navigation connects community and maintenance in one workspace", () => {

@@ -29,7 +29,12 @@ import type {
   CommunityContext,
   CommunityData,
 } from "../../../../../shared/community";
-import { deliveryTasks, defaultSection, managementModules, moduleUrl } from "./management";
+import {
+  deliveryTasks,
+  defaultSection,
+  managementModules,
+  moduleUrl,
+} from "./management";
 import { viewHome, viewName } from "../../../../../shared/accountView";
 import { NotificationDrawer } from "../NotificationDrawer";
 import { api } from "../../api";

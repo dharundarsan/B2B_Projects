@@ -234,7 +234,7 @@ export function UserManagement({ properties }: { properties: Property[] }) {
               <tr>
                 <th>Person</th>
                 <th>Role & views</th>
-                <th>Buildings</th>
+                <th>Communities</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -378,7 +378,7 @@ export function UserManagement({ properties }: { properties: Property[] }) {
             <p>
               {confirm.status === "active"
                 ? "They will lose access to all their CommunityHub views until you reactivate the account."
-                : "They will regain access to their assigned views and buildings."}
+                : "They will regain access to their assigned views and communities."}
             </p>
             {error && <p role="alert">{error}</p>}
             <div className="community-actions">
@@ -665,7 +665,7 @@ function UserEditor({
               <h3>Community assignments</h3>
               <p>
                 {admin
-                  ? "Administration covers all buildings in this workspace. Personal records still follow their own ownership and occupancy."
+                  ? "Administration covers all communities in this workspace. Personal records still follow their own ownership and occupancy."
                   : "Assign their community. Residents can also have a unit and occupancy dates."}
               </p>
             </div>
@@ -674,7 +674,7 @@ function UserEditor({
             <p className="community-muted">
               {admin
                 ? "Workspace administration access is included. Community assignments are optional."
-                : "No building assigned. Add an assignment to grant access to a community."}
+                : "No community assigned. Add an assignment to grant access to a community."}
             </p>
           )}
           {memberships.map((m, i) => (
@@ -777,13 +777,13 @@ function MembershipEditor({
     <div className="ch-membership">
       <div className="community-fields">
         <label>
-          Building
+          Community
           <select
             required
             value={m.propertyId}
             onChange={(e) => onChange({ propertyId: e.target.value })}
           >
-            <option value="">Choose building</option>
+            <option value="">Choose community</option>
             {properties.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}

@@ -10,7 +10,12 @@ import {
 } from "lucide-react";
 import { useWorkspace } from "./WorkspaceContext";
 import { ModuleIcon } from "./ModuleIcon";
-import { moduleUrl, financialSummary, financialCsv, deliveryTasks } from "./management";
+import {
+  moduleUrl,
+  financialSummary,
+  financialCsv,
+  deliveryTasks,
+} from "./management";
 import { amount, Card, None, Status } from "./ui";
 import type { CommunityData } from "../../../../../shared/community";
 export function AdminCenter({ data }: { data: CommunityData }) {
@@ -136,7 +141,14 @@ export function ActionCenter({
         section: "services",
         group: "Services",
       })),
-    ...deliveryTasks(d).map(r=>({id:r.id,title:r.name,detail:`${r.packages} packages · ${r.destination ?? "Community gate"}`,status:r.approval === "pending" ? "pending" : r.status, section:"gate",group:"Deliveries"})),
+    ...deliveryTasks(d).map((r) => ({
+      id: r.id,
+      title: r.name,
+      detail: `${r.packages} packages · ${r.destination ?? "Community gate"}`,
+      status: r.approval === "pending" ? "pending" : r.status,
+      section: "gate",
+      group: "Deliveries",
+    })),
     ...d.gateEntries
       .filter((g) => g.status === "expected" && g.approval === "pending")
       .map((g) => ({

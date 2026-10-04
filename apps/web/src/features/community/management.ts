@@ -69,7 +69,7 @@ export function managementModules(
       module(
         "gate",
         "Incoming deliveries",
-        "Request personal or bulk stock deliveries to your store.",
+        "Request small or bulk stock deliveries to your store.",
         "My business",
         "shield",
         "blue",
@@ -360,6 +360,20 @@ export function financialCsv(data: CommunityData) {
 }
 
 export function deliveryTasks(data: CommunityData, now = new Date()) {
-  const day = (instant: Date) => new Intl.DateTimeFormat("en-CA",{timeZone:data.property.timezone,year:"numeric",month:"2-digit",day:"2-digit"}).format(instant);
-  return (data.deliveries ?? []).filter(r => data.canManage && r.status === "expected" && r.approval === "pending" || data.canGate && r.status === "expected" && r.approval === "approved" && day(new Date(r.expectedAt)) === day(now) || !data.canGate && r.userId === data.userId && r.status === "accepted");
+  const day = (instant: Date) =>
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: data.property.timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(instant);
+  return (data.deliveries ?? []).filter(
+    (r) =>
+      (data.canManage && r.status === "expected" && r.approval === "pending") ||
+      (data.canGate &&
+        r.status === "expected" &&
+        r.approval === "approved" &&
+        day(new Date(r.expectedAt)) === day(now)) ||
+      (!data.canGate && r.userId === data.userId && r.status === "accepted"),
+  );
 }

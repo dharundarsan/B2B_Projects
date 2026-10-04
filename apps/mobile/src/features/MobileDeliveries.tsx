@@ -128,8 +128,10 @@ export function MobileDeliveries({
               · {r.reference}
             </Text>
             <Text style={s.body}>{r.notes}</Text>
-            <Text style={s.small}>{r.destination} · {r.recipientName}</Text>
-          <Badge label={r.approval} />
+            <Text style={s.small}>
+              {r.destination} · {r.recipientName}
+            </Text>
+            <Badge label={r.approval} />
             <Badge label={r.status} />
             {(d.canManage && r.status === "expected" && r.approval === "pending"
               ? ["approve", "deny"]

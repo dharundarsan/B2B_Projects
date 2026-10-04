@@ -27,9 +27,11 @@ export function Deliveries({ data: d, mutate, busy }: ModuleProps) {
             : "My expected deliveries"
       }
       detail={
-        seller
-          ? "Tell the gate about incoming stock. Bulk shipments need admin approval and handling instructions."
-          : "Request an expected delivery, track acceptance at the gate, then confirm you received it."
+        d.canGate
+          ? "Review bulk requests and record approved deliveries at the gate. Only the intended recipient can confirm receipt."
+          : seller
+            ? "Tell the gate about incoming stock. Bulk shipments need admin approval and handling instructions."
+            : "Request an expected delivery, track acceptance at the gate, then confirm you received it."
       }
     >
       {requester && (!seller || providers.length > 0) && (
@@ -157,7 +159,8 @@ export function Deliveries({ data: d, mutate, busy }: ModuleProps) {
             {new Date(r.expectedAt).toLocaleString()}
           </p>
           <p>
-            {r.destination ?? "Community gate pickup"} · Recipient: {r.recipientName ?? "Community member"}
+            {r.destination ?? "Community gate pickup"} · Recipient:{" "}
+            {r.recipientName ?? "Community member"}
             {r.reference && ` · Reference: ${r.reference}`}
           </p>
           {r.notes && <p className="community-preserve">{r.notes}</p>}

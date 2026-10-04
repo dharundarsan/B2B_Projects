@@ -436,7 +436,7 @@ export function MobileCommunityAdmin({
             ))}
           </Card>
           <Section title="Stores and facilities" />
-          <MobileProviders data={d} save={save} busy={busy}/>
+          <MobileProviders data={d} save={save} busy={busy} />
           <Card>
             <Form
               title="Add shared facility"
