@@ -1,3 +1,4 @@
+import { MobileProviders } from "./MobileProviders";
 import { useCallback } from "react";
 import { useResource } from "../hooks/useResource";
 import { request } from "../lib/api";
@@ -435,40 +436,7 @@ export function MobileCommunityAdmin({
             ))}
           </Card>
           <Section title="Stores and facilities" />
-          <Card>
-            <Form
-              title="Register an internal shop or resident seller"
-              busy={busy}
-              fields={[
-                { name: "name", label: "Store name" },
-                {
-                  name: "kind",
-                  label: "Seller type",
-                  options: choices("shop", "resident"),
-                  value: "shop",
-                },
-                { name: "pickup", label: "Pickup location" },
-                {
-                  name: "userId",
-                  label: "Seller account",
-                  options: accounts
-                    .filter(
-                      (u) =>
-                        u.allowSeller &&
-                        (u.allowAdmin ||
-                          u.memberships.some(
-                            (m) => m.propertyId === d.property.id,
-                          )),
-                    )
-                    .map((u) => ({
-                      value: u.userId,
-                      label: u.displayName || u.email,
-                    })),
-                },
-              ]}
-              save={(v) => save("sellers", { ...v, userId: v.userId || null })}
-            />
-          </Card>
+          <MobileProviders data={d} save={save} busy={busy}/>
           <Card>
             <Form
               title="Add shared facility"
