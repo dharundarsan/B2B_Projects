@@ -1,0 +1,1 @@
+UPDATE users SET display_name=@name,managed_role=@role,allow_user=@allowUser,allow_admin=@allowAdmin,allow_seller=@allowSeller,user_context=@context,revision=revision+1 WHERE workspace_id=@workspace AND user_id=@user AND revision=@revision;

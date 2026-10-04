@@ -73,6 +73,12 @@ import {
 import { useObjectUrl } from "./hooks/useObjectUrl";
 import { useOverlayFocus } from "./hooks/useOverlayFocus";
 import { CommonAreaSection } from "./features/CommonAreaSection";
+import { CommunityPage } from "./features/community/CommunityPage";
+import { CommunitySetup } from "./features/community/CommunitySetup";
+import { WorkspaceShell } from "./features/community/WorkspaceShell";
+import { useWorkspace } from "./features/community/WorkspaceContext";
+import { AccountViewProvider, ProfileMenu, useAccountView } from "./features/AccountView";
+import { viewHome } from "../../../shared/accountView";
 import { ResidentLinkPanel } from "./features/ResidentLinkPanel";
 import { clearResidentDraft, readResidentDraft, residentLinkPayload, residentUnitChoice, saveResidentDraft } from "./features/residentPrivacy";
 import {
@@ -335,7 +341,6 @@ function App() {
 function AuthGate() {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(demoMode);
-  const [mobileAccountError, setMobileAccountError] = useState("");
   useEffect(() => {
     if (demoMode) return;
     if (!supabase) {
@@ -389,12 +394,7 @@ function AuthGate() {
   if (!demoMode && !session) return <SignInPage />;
   const role = demoMode
     ? "demo"
-    : String(session?.user.app_metadata?.role ?? "owner");
-  if (role === "watchman") return <div className="auth-shell"><div className="surface auth-card">
-    <PublicHeader eyebrow="Apartment mobile app" title="Use the RepairLedger mobile app" description="Watchman accounts coordinate confirmed vendor visits and shared-area reports in the mobile app. This account does not have access to the manager workspace." />
-    {mobileAccountError ? <ErrorNotice message={mobileAccountError} onRetry={() => setMobileAccountError("")} /> : null}
-    <Button variant="secondary" onClick={() => { void supabase?.auth.signOut({ scope: "local" }).then(result => { if (result.error) setMobileAccountError(result.error.message); }).catch(() => setMobileAccountError("Could not sign out. Please retry.")); }}>Sign out</Button>
-  </div></div>;
+    : String(session?.user.app_metadata?.role ?? "member");
   const displayName = demoMode
     ? "Maya Chen"
     : typeof session?.user.user_metadata?.name === "string"
@@ -407,135 +407,18 @@ function AuthGate() {
       : "Your workspace";
   return (
     <RoleContext.Provider value={{ role, displayName, workspaceName, userId: session?.user.id ?? "demo-owner" }}>
-      <ProductRoutes key={session?.user.id ?? "demo-owner"} />
+      <AccountViewProvider key={session?.user.id ?? "demo-owner"}><ProductRoutes /></AccountViewProvider>
     </RoleContext.Provider>
   );
 }
 
 function SignInPage() {
-  const [creating, setCreating] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [notice, setNotice] = useState("");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    setBusy(true);
-    setError("");
-    setNotice("");
-    try {
-      if (!supabase) throw new Error("Authentication is not configured.");
-      if (creating) {
-        const { data, error: authError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { data: { name } },
-        });
-        if (authError) throw authError;
-        if (!data.session)
-          setNotice("Check your email to confirm your account, then sign in.");
-      } else {
-        const { error: authError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (authError) throw authError;
-      }
-    } catch (reason) {
-      setError(
-        reason instanceof Error
-          ? reason.message
-          : "Could not complete sign in.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <div className="auth-shell">
-      <header className="public-brand">
-        <Link to="/" className="brand-row">
-          <span className="brand-mark">R</span>
-          <span className="brand-name">RepairLedger</span>
-        </Link>
-      </header>
-      <main className="surface auth-card">
-        <PublicHeader
-          eyebrow="Repair operations"
-          title={creating ? "Create your workspace" : "Welcome back"}
-          description={
-            creating
-              ? "Start with your account. Add properties and invite your team after sign in."
-              : "Sign in to manage repairs, vendor work, and approvals."
-          }
-        />
-        {error ? (
-          <div className="notice danger">
-            <AlertCircle size={18} />
-            <span>{error}</span>
-          </div>
-        ) : null}
-        {notice ? (
-          <div className="notice success">
-            <Check size={18} />
-            <span>{notice}</span>
-          </div>
-        ) : null}
-        <form className="estimate-form" onSubmit={submit}>
-          {creating ? (
-            <label>
-              Your name
-              <input
-                autoComplete="name"
-                required
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </label>
-          ) : null}
-          <label>
-            Email
-            <input
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </label>
-          <label>
-            Password
-            <input
-              type="password"
-              autoComplete={creating ? "new-password" : "current-password"}
-              minLength={8}
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </label>
-          <Button type="submit" disabled={busy}>
-            {busy ? "Please wait…" : creating ? "Create account" : "Sign in"}
-          </Button>
-        </form>
-        <button
-          className="text-button"
-          onClick={() => {
-            setCreating((value) => !value);
-            setError("");
-            setNotice("");
-          }}
-        >
-          {creating
-            ? "Already have an account? Sign in"
-            : "New to RepairLedger? Create an account"}
-        </button>
-      </main>
-    </div>
-  );
+  const [email,setEmail]=useState(''),[password,setPassword]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+  const submit=async(event:FormEvent)=>{event.preventDefault();setBusy(true);setError('');try{if(!supabase)throw new Error('Authentication is not configured.');const {error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error;}catch(e){setError(e instanceof Error?e.message:'Could not sign in.');}finally{setBusy(false)}};
+  return <div className="auth-shell"><header className="public-brand"><Link to="/" className="brand-row"><span className="brand-mark">C</span><span className="brand-name">CommunityHub</span></Link></header><main className="surface auth-card"><PublicHeader eyebrow="APARTMENT MANAGEMENT" title="Welcome to your community" description="Sign in to your apartment's services, marketplace and management workspace."/>{error&&<ErrorNotice message={error} onRetry={()=>setError('')}/>}<form className="estimate-form" onSubmit={e=>void submit(e)}><label>Email<input type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Password<input type="password" autoComplete="current-password" required value={password} onChange={e=>setPassword(e.target.value)}/></label><Button type="submit" disabled={busy}>{busy?'Signing in…':'Sign in'}</Button></form><p className="muted">Need an account? Contact your apartment administrator.</p></main></div>;
 }
+
+function ViewHomeRedirect(){const {view}=useAccountView();const location=useLocation();return <Navigate to={{pathname:viewHome(view.userContext,view.role),search:new URLSearchParams(location.search).has("property")?new URLSearchParams({property:new URLSearchParams(location.search).get("property")!}).toString():""}} replace/>;}
 
 function RoleRoute({
   allowed,
@@ -544,16 +427,24 @@ function RoleRoute({
   allowed: string[];
   children: ReactNode;
 }) {
-  const { role } = useContext(RoleContext);
-  if (role === "demo" || allowed.includes(role)) return children;
-  const destination =
-    role === "tenant" ? "/tenant" : role === "vendor" ? "/vendor/jobs" : "/";
-  return <Navigate to={destination} replace />;
+  const {view} = useAccountView();
+  const role=view.role;
+  const location=useLocation();
+  const adminPage=!location.pathname.startsWith('/tenant')&&!location.pathname.startsWith('/vendor');
+  if(adminPage&&view.userContext!==2)return <ViewHomeRedirect/>;
+  if(view.userContext===3)return <ViewHomeRedirect/>;
+  if(role==='demo'||allowed.includes(role))return children;
+  return <ViewHomeRedirect/>;
 }
 
 function ProductRoutes() {
-  return (
-    <Routes>
+  const base=useContext(RoleContext);const {view}=useAccountView();
+  const routes = <Routes>
+      <Route path="/" element={<ViewHomeRedirect/>}/>
+      <Route path="/community/*" element={<ViewHomeRedirect/>}/>
+      <Route path="/admin" element={<CommunityPage mode={2}/>}/>
+      <Route path="/home" element={<CommunityPage mode={1}/>}/>
+      <Route path="/seller" element={<CommunityPage mode={3}/>}/>
       <Route
         path="/tenant"
         element={
@@ -618,382 +509,28 @@ function ProductRoutes() {
           </RoleRoute>
         }
       />
-    </Routes>
-  );
+    </Routes>;
+  return <RoleContext.Provider value={{...base,role:view.role,displayName:view.displayName||base.displayName}}>{view.role === "vendor" ? routes : <WorkspaceShell languageMenu={<LanguageMenu compact/>}>{routes}</WorkspaceShell>}</RoleContext.Provider>;
 }
 
 function LandlordApp() {
   return (
-    <Shell>
       <Routes>
         <Route index element={<Dashboard />} />
+        <Route path="maintenance" element={<Dashboard />} />
         <Route path="requests" element={<Requests />} />
         <Route path="requests/new" element={<NewRequest />} />
         <Route path="requests/:id" element={<RequestWorkspace />} />
         <Route path="vendors" element={<Vendors />} />
-        <Route path="properties" element={<Properties />} />
-        <Route path="properties/:id" element={<PropertyDetail />} />
+        <Route path="properties" element={<CommunitySetup />} />
+        <Route path="properties/:id" element={<CommunitySetup />} />
         <Route path="costs" element={<Costs />} />
         <Route path="settings/languages" element={<LanguageSettings />} />
         <Route path="*" element={<Dashboard />} />
       </Routes>
-    </Shell>
   );
 }
 
-function Shell({ children }: { children: ReactNode }) {
-  const { t } = useContext(LanguageContext);
-  const account = useContext(RoleContext);
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [mobileNav, setMobileNav] = useState(false);
-  const [search, setSearch] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [requestCount, setRequestCount] = useState<number | null>(null);
-  const [unreadNotifications, setUnreadNotifications] = useState<number | null>(
-    null,
-  );
-  const [searchRecords, setSearchRecords] = useState<RequestRecord[]>([]);
-  const navRef = useOverlayFocus<HTMLElement>(mobileNav, () =>
-    setMobileNav(false),
-  );
-  useEffect(() => {
-    let active = true;
-    api
-      .requests()
-      .then(({ data }) => {
-        if (active) {
-          setRequestCount(data.filter(isOpen).length);
-          setSearchRecords(data);
-        }
-      })
-      .catch(() => undefined);
-    api
-      .notifications()
-      .then(({ data }) => {
-        if (active)
-          setUnreadNotifications(data.filter((item) => !item.read).length);
-      })
-      .catch(() => {
-        if (active) setUnreadNotifications(null);
-      });
-    return () => {
-      active = false;
-    };
-  }, [location.pathname]);
-  const links = [
-    { to: "/", label: t("today", "Today"), icon: LayoutDashboard },
-    { to: "/requests", label: t("requests", "Requests"), icon: ClipboardList },
-    { to: "/properties", label: t("properties", "Properties"), icon: Home },
-    { to: "/vendors", label: t("vendors", "Vendors"), icon: Store },
-    { to: "/costs", label: t("costs", "Costs"), icon: CircleDollarSign },
-    {
-      to: "/settings/languages",
-      label: t("settings", "Settings"),
-      icon: Settings2,
-    },
-  ];
-  const suggestions = useMemo(
-    () =>
-      searchRecords
-        .filter((item) =>
-          `${item.id} ${item.title} ${item.property}`
-            .toLowerCase()
-            .includes(search.toLowerCase()),
-        )
-        .slice(0, 4),
-    [searchRecords, search],
-  );
-  return (
-    <div className="app-shell">
-      <a className="skip-link" href="#main-content">
-        Skip to content
-      </a>
-      <aside
-        className={`sidebar ${mobileNav ? "open" : ""}`}
-        ref={navRef}
-        role={mobileNav ? "dialog" : undefined}
-        aria-modal={mobileNav ? true : undefined}
-        aria-label="Workspace navigation"
-      >
-        <div className="brand-row">
-          <Link to="/" className="brand-row">
-            <span className="brand-mark">R</span>
-            <span className="brand-name">RepairLedger</span>
-          </Link>
-          <button
-            className="icon-button mobile-close"
-            aria-label="Close navigation"
-            onClick={() => setMobileNav(false)}
-          >
-            <X size={18} />
-          </button>
-        </div>
-        <button
-          className="workspace-switcher"
-          onClick={() => navigate("/settings/languages?workspace=1")}
-        >
-          <div className="avatar avatar-small">
-            {account.workspaceName.slice(0, 1).toUpperCase()}
-          </div>
-          <div>
-            <strong>{account.workspaceName}</strong>
-            <span>{formatState(account.role)} workspace</span>
-          </div>
-          <ChevronDown size={15} />
-        </button>
-        <div className="nav-section-label">WORKSPACE</div>
-        <nav className="side-nav" aria-label="Main navigation">
-          {links.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === "/"}
-              onClick={() => setMobileNav(false)}
-              className={({ isActive }) =>
-                `nav-item ${isActive ? "active" : ""}`
-              }
-            >
-              <Icon size={17} />
-              <span>{label}</span>
-              {to === "/requests" ? <small>{requestCount ?? "—"}</small> : null}
-            </NavLink>
-          ))}
-        </nav>
-        <div className="sidebar-bottom">
-          <Link className="sidebar-portal-link" to="/tenant">
-            Open resident portal <ArrowUpRightIcon />
-          </Link>
-          <Link className="help-card" to="/settings/languages?help=1">
-            <LifeBuoy size={17} />
-            <div>
-              <strong>Need a hand?</strong>
-              <span>Open the operator guide</span>
-            </div>
-            <ArrowRight size={15} />
-          </Link>
-          <button
-            className="profile-row"
-            onClick={() => navigate("/settings/languages?profile=1")}
-          >
-            <div className="avatar">
-              {account.displayName.slice(0, 1).toUpperCase()}
-            </div>
-            <div>
-              <strong>{account.displayName}</strong>
-              <span>
-                {formatState(account.role)} · {account.workspaceName}
-              </span>
-            </div>
-            <MoreHorizontal size={16} />
-          </button>
-        </div>
-      </aside>
-      {mobileNav ? (
-        <button
-          className="sidebar-scrim"
-          aria-label="Close navigation"
-          onClick={() => setMobileNav(false)}
-        />
-      ) : null}
-      <div className="main-area">
-        <header className="topbar">
-          <button
-            className="icon-button mobile-menu"
-            aria-label="Open navigation"
-            onClick={() => setMobileNav(true)}
-          >
-            <Menu size={20} />
-          </button>
-          <div className="global-search">
-            <Search size={16} />
-            <input
-              aria-label="Search repair requests"
-              value={search}
-              placeholder={`${t("search", "Search")} repair requests…`}
-              onFocus={() => setSearchOpen(true)}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setSearchOpen(true);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && search.trim()) {
-                  setSearchOpen(false);
-                  navigate(
-                    `/requests?search=${encodeURIComponent(search.trim())}`,
-                  );
-                }
-                if (event.key === "Escape") setSearchOpen(false);
-              }}
-            />
-            {searchOpen && search ? (
-              <div className="search-results">
-                {suggestions.length ? (
-                  suggestions.map((item) => (
-                    <Link
-                      key={item.id}
-                      to={`/requests/${item.id}`}
-                      onClick={() => setSearchOpen(false)}
-                    >
-                      <strong>{item.id}</strong>
-                      <span>
-                        {item.title} · {item.property} {item.unit}
-                      </span>
-                    </Link>
-                  ))
-                ) : (
-                  <span className="muted">
-                    No matching records. Press Enter to search all requests.
-                  </span>
-                )}
-              </div>
-            ) : null}
-          </div>
-          <div className="topbar-actions">
-            <Link className="portal-link" to="/tenant">
-              {t("residentPortal", "Open resident portal")} <ArrowUpRightIcon />
-            </Link>
-            <LanguageMenu />
-            <button
-              className="notification-button"
-              aria-label="Open notifications"
-              onClick={() => setNotificationsOpen(true)}
-            >
-              <Bell size={17} />
-              {unreadNotifications !== null && unreadNotifications > 0 ? (
-                <i />
-              ) : null}
-            </button>
-            <button
-              className="avatar"
-              aria-label={demoMode ? "View demo profile" : "Sign out"}
-              title={demoMode ? "View demo profile" : "Sign out"}
-              onClick={() =>
-                demoMode
-                  ? navigate("/settings/languages?profile=1")
-                  : void supabase?.auth.signOut()
-              }
-            >
-              {account.displayName.slice(0, 1).toUpperCase()}
-            </button>
-          </div>
-        </header>
-        <main className="content" id="main-content" tabIndex={-1}>
-          {children}
-        </main>
-      </div>
-      {notificationsOpen ? (
-        <NotificationDrawer
-          onClose={() => setNotificationsOpen(false)}
-          onCountChange={setUnreadNotifications}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-function NotificationDrawer({
-  onClose,
-  onCountChange,
-}: {
-  onClose: () => void;
-  onCountChange: (count: number) => void;
-}) {
-  const navigate = useNavigate();
-  const overlayRef = useOverlayFocus<HTMLElement>(true, onClose);
-  const {
-    data: items,
-    loading,
-    error,
-    setError,
-    refresh: load,
-  } = useApiResource(
-    useCallback((signal) => api.notifications(signal), []),
-    [] as NotificationRecord[],
-  );
-  useEffect(() => {
-    if (!loading) onCountChange(items.filter((item) => !item.read).length);
-  }, [items, loading, onCountChange]);
-  const markRead = async (item: NotificationRecord) => {
-    try {
-      const { data } = await api.markNotificationRead(item.id);
-      onCountChange(
-        items.filter((entry) =>
-          entry.id === item.id ? !data.read : !entry.read,
-        ).length,
-      );
-      onClose();
-      if (item.href) navigate(item.href);
-    } catch (reason) {
-      setError(
-        reason instanceof Error
-          ? reason.message
-          : "Notification could not be updated.",
-      );
-    }
-  };
-  return (
-    <div className="drawer-backdrop" onClick={onClose}>
-      <aside
-        className="drawer"
-        ref={overlayRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Notifications"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="drawer-header">
-          <div>
-            <span className="label">INBOX</span>
-            <h2>Notifications</h2>
-          </div>
-          <button
-            className="icon-button"
-            aria-label="Close notifications"
-            onClick={onClose}
-          >
-            <X size={18} />
-          </button>
-        </div>
-        {error ? <ErrorNotice message={error} onRetry={load} /> : null}
-        <div className="notification-list">
-          {loading ? (
-            <LoadingState label="Loading notifications…" />
-          ) : (
-            items.map((item) => (
-              <button
-                className={`notification-item ${item.read ? "read" : ""}`}
-                key={item.id}
-                onClick={() => {
-                  void markRead(item);
-                }}
-              >
-                <span className={`notification-dot ${item.type}`} />
-                <div>
-                  <strong>{item.title}</strong>
-                  <span>{item.detail}</span>
-                  <small>
-                    {/^\d{4}-\d{2}-\d{2}T/.test(item.at)
-                      ? formatDate(item.at)
-                      : item.at}
-                  </small>
-                </div>
-                {!item.read ? <i /> : null}
-              </button>
-            ))
-          )}
-          {!loading && !items.length && !error ? (
-            <EmptyState
-              title="All clear"
-              detail="New actions and messages will appear here."
-            />
-          ) : null}
-        </div>
-      </aside>
-    </div>
-  );
-}
 function ArrowUpRightIcon() {
   return (
     <svg
@@ -1456,7 +993,7 @@ function Requests() {
             <Button
               variant="secondary"
               disabled={loading || Boolean(error) || !visible.length}
-              onClick={() => downloadCsv(visible, "repairledger-requests.csv")}
+              onClick={() => downloadCsv(visible, "communityhub-requests.csv")}
             >
               <Download size={16} />
               Export
@@ -1913,6 +1450,9 @@ function FilterDrawer({
 }
 
 function NewRequest() {
+  const {selected}=useWorkspace();
+  const location=useLocation();
+  const preferredProperty=new URLSearchParams(location.search).get("property")??(selected||sessionStorage.getItem("communityhub.activeBuilding")||"");
   const navigate = useNavigate();
   const [form, setForm] = useState({
     title: "",
@@ -1937,7 +1477,7 @@ function NewRequest() {
       .properties()
       .then(({ data }) => {
         setProperties(data);
-        setForm((current) => ({ ...current, propertyId: data[0]?.id ?? "" }));
+        setForm((current) => ({ ...current, propertyId: data.find(p=>p.id===preferredProperty)?.id ?? data[0]?.id ?? "" }));
       })
       .catch((reason) =>
         setError(
@@ -1960,7 +1500,7 @@ function NewRequest() {
         priority: form.priority as "urgent" | "routine",
         language: "en-US",
       });
-      navigate(`/requests/${data.id}`);
+      navigate(`/requests/${data.id}?property=${encodeURIComponent(form.propertyId)}`);
     } catch (reason) {
       setError(
         reason instanceof Error
@@ -3528,6 +3068,7 @@ function VendorProfileModal({
 }
 
 function Properties() {
+  const {selected,context,resource}=useWorkspace();
   const {
     data: items,
     setData: setItems,
@@ -3543,13 +3084,13 @@ function Properties() {
     [] as RequestRecord[],
   );
   const [addOpen, setAddOpen] = useState(false);
-  const primary = items[0];
+  const primary = items.find(p=>p.id===selected)??items[0];
   return (
     <>
       <PageHeader
         eyebrow="Portfolio"
-        title="Properties"
-        description="Portfolio health without losing the repair context."
+        title="Buildings & units"
+        description="Manage buildings, registered units, common spaces and repair activity."
         action={
           <Button onClick={() => setAddOpen(true)}>
             <Plus size={17} /> Add property
@@ -3631,7 +3172,7 @@ function Properties() {
             />
           </section>
           <section className="property-list">
-            {items.slice(1).map((property) => (
+            {items.filter(p=>p.id!==primary.id).map((property) => (
               <Link
                 className="surface property-list-row"
                 to={`/properties/${property.id}`}
@@ -3663,6 +3204,7 @@ function Properties() {
           onClose={() => setAddOpen(false)}
           onCreated={(property) => {
             setItems((current) => [property, ...current]);
+            context.refresh(); resource.refresh();
             setAddOpen(false);
           }}
         />
@@ -4035,7 +3577,7 @@ function Costs() {
                   amount: estimate.total,
                   status: estimate.status,
                 })),
-                "repairledger-quotes.csv",
+                "communityhub-quotes.csv",
               )
             }
           >
@@ -4197,7 +3739,7 @@ function LanguageSettings() {
   const [saved, setSaved] = useState(false);
   const save = () => {
     localStorage.setItem(
-      "repairledger-language-settings",
+      "communityhub-language-settings",
       JSON.stringify({ language }),
     );
     setSaved(true);
@@ -4354,17 +3896,7 @@ function PublicShell({
   total?: number;
 }) {
   return (
-    <div className="public-shell">
-      <div className="public-brand">
-        <Link to="/" className="brand-row">
-          <span className="brand-mark">R</span>
-          <span className="brand-name">RepairLedger</span>
-        </Link>
-      </div>
-      <div className="public-help">
-        <span>Resident portal</span>
-        <LanguageMenu compact />
-      </div>
+    <div className="public-shell ch-public-shell">
       {step ? (
         <div className="progress-strip">
           {Array.from({ length: total }).map((_, index) => (
@@ -4395,6 +3927,7 @@ function PublicShell({
               My repairs
             </NavLink>
             <NavLink to="/tenant/report">Report an issue</NavLink>
+            <NavLink to="/home">Community home</NavLink>
           </nav>
           {children}
         </main>
@@ -5500,26 +5033,13 @@ function VendorQueue() {
 function VendorShell({ children }: { children: ReactNode }) {
   return (
     <div className="vendor-shell">
-      <header className="vendor-topbar">
+      <header className="vendor-topbar ch-vendor-top">
         <Link to="/vendor/jobs" className="brand-row">
-          <span className="brand-mark">R</span>
-          <span className="brand-name">RepairLedger</span>
+          <span className="brand-mark">C</span>
+          <span className="brand-name">CommunityHub</span>
         </Link>
         <div className="vendor-top-actions">
-          <LanguageMenu compact />
-          {demoMode ? (
-            <span className="avatar" aria-label="Demo vendor">
-              V
-            </span>
-          ) : (
-            <button
-              className="avatar"
-              aria-label="Sign out"
-              onClick={() => void supabase?.auth.signOut()}
-            >
-              V
-            </button>
-          )}
+          <LanguageMenu compact /><ProfileMenu/>
         </div>
       </header>
       <main className="vendor-main">{children}</main>

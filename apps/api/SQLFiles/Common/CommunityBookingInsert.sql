@@ -1,0 +1,1 @@
+INSERT INTO community_bookings (id,workspace_id,property_id,revision,created_at,facility_id,user_id,starts_at,ends_at,status,price,currency,submission_id) VALUES (@Id,@WorkspaceId,@PropertyId,@Revision,@CreatedAt,@FacilityId,@UserId,@StartsAt,@EndsAt,@Status,@Price,@Currency,@SubmissionId);

@@ -73,6 +73,10 @@ public sealed class MigrationTests
     [InlineData(3)]
     [InlineData(4)]
     [InlineData(5)]
+    [InlineData(6)]
+    [InlineData(7)]
+    [InlineData(8)]
+    [InlineData(9)]
     public Task MySql_recovers_from_a_partly_committed_DDL_migration(int interruptedVersion) => WithDatabase(async (connection, sql, dapper, config) =>
     {
         if (connection.Provider != RepairLedger.Api.Enums.DatabaseConnectionType.MySql) return;
@@ -81,7 +85,7 @@ public sealed class MigrationTests
             await db.ExecuteAsync(sql.GetSqlQuery("BootstrapMigrations"));
             for (var version = 1; version <= interruptedVersion; version++)
             {
-                var file = version switch { 1 => "001_initial", 2 => "002_relational_history", 3 => "003_integrity", 4 => "004_mobile_operations", _ => "005_resident_privacy" };
+                var file = version switch { 1 => "001_initial", 2 => "002_relational_history", 3 => "003_integrity", 4 => "004_mobile_operations", 5 => "005_resident_privacy", 6 => "006_Community", 7 => "007_UserContext", 8 => "008_ManagementViews", _ => "009_CommunityStructure" };
                 var script = sql.ReadResource($"RepairLedger.Api.DatabaseScripts.MySql.{file}.sql");
                 var parameters = new { version, at = DateTimeOffset.UtcNow.ToString("O"),
                     checksum = SqlScriptHelper.Checksum(script) };

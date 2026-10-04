@@ -7,6 +7,8 @@ public sealed class PropertyUnit
     [JsonIgnore] public string WorkspaceId { get; set; } = "";
     public string PropertyId { get; set; } = "";
     public string Label { get; set; } = "";
+    public string? BlockId { get; set; }
+    public int? Floor { get; set; }
     [JsonIgnore] public int Archived { get; set; }
     public string CreatedAt { get; set; } = DateTimeOffset.UtcNow.ToString("O");
 }

@@ -1,0 +1,1 @@
+UPDATE community_facilities SET revision=@Revision,name=@Name,capacity=@Capacity,slot_minutes=@SlotMinutes,price=@Price,currency=@Currency,rules=@Rules,status=@Status WHERE workspace_id=@WorkspaceId AND property_id=@PropertyId AND id=@Id AND revision=@Revision-1;

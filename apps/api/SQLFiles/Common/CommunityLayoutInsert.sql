@@ -1,0 +1,1 @@
+INSERT INTO community_layouts (id,workspace_id,property_id,revision,created_at,floor,name,draft_json,published_json,published_at) VALUES (@Id,@WorkspaceId,@PropertyId,@Revision,@CreatedAt,@Floor,@Name,@DraftJson,@PublishedJson,@PublishedAt);

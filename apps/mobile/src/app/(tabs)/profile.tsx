@@ -7,7 +7,7 @@ import type { Language } from '../../types';
 
 export default function Profile() {
   const auth = useAuth(); const { t, language, setLanguage } = useI18n(); const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
-  return <Screen><Heading title={t('profile')} /><Card><View style={s.row}><View style={s.avatar}><Icon name="person-outline" /></View><View style={{ flex: 1 }}><Text style={s.h3}>{auth.context?.email}</Text><Badge label={auth.context?.role === 'watchman' ? t('watchman') : t('resident')} /></View></View></Card>
+  return <Screen><Heading title={t('profile')} /><Card><View style={s.row}><View style={s.avatar}><Icon name="person-outline" /></View><View style={{ flex: 1 }}><Text style={s.h3}>{auth.context?.email}</Text><Badge label={auth.context?.canSwitchContext ? (auth.context.userContext===2?'Administrator':'Community member') : auth.context?.role === 'watchman' ? t('watchman') : t('resident')} /></View></View></Card>
     <Section title={t('language')} /><Chips<Language> value={language} onChange={setLanguage} options={(Object.keys(languageNames) as Language[]).map(value => ({ value, label: languageNames[value] }))} /><Text style={s.small}>{t('languageHelp')} (Hindi / Tamil: navigation and key actions; longer help uses English.)</Text>
     <Section title={t('assigned')} /><Card>{auth.context?.properties.map(property => <View key={property.id}><Text style={s.h3}>{property.name}</Text><Text style={s.small}>{property.units.join(' · ') || t('shared')} · {property.timezone}</Text></View>)}{!auth.context?.properties.length ? <Notice message={t('noAssignmentHelp')} /> : null}</Card>
     <Section title={t('privacy')} /><Notice message={auth.context?.role === 'watchman' ? t('watchmanPrivacy') : t('residentPrivacy')} />

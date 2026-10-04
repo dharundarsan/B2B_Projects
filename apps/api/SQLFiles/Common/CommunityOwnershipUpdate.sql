@@ -1,0 +1,1 @@
+UPDATE community_ownerships SET revision=@Revision,unit_id=@UnitId,party_id=@PartyId,share=@Share,income_share=@IncomeShare,expense_share=@ExpenseShare,starts_on=@StartsOn,ends_on=@EndsOn WHERE workspace_id=@WorkspaceId AND property_id=@PropertyId AND id=@Id AND revision=@Revision-1;

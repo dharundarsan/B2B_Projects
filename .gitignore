@@ -41,3 +41,4 @@ TestResults/
 **/appsettings.Local.json
 migration-export/
 migration-export*.json
+RepairLedger-context-2026-10-03/

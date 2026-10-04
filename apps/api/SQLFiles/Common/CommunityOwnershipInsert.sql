@@ -1,0 +1,1 @@
+INSERT INTO community_ownerships (id,workspace_id,property_id,revision,created_at,unit_id,party_id,share,income_share,expense_share,starts_on,ends_on) VALUES (@Id,@WorkspaceId,@PropertyId,@Revision,@CreatedAt,@UnitId,@PartyId,@Share,@IncomeShare,@ExpenseShare,@StartsOn,@EndsOn);

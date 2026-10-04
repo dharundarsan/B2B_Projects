@@ -1,0 +1,1 @@
+INSERT INTO community_orders (id,workspace_id,property_id,revision,created_at,product_id,seller_id,user_id,group_id,quantity,unit_price,currency,status,payment_status,submission_id) VALUES (@Id,@WorkspaceId,@PropertyId,@Revision,@CreatedAt,@ProductId,@SellerId,@UserId,@GroupId,@Quantity,@UnitPrice,@Currency,@Status,@PaymentStatus,@SubmissionId);

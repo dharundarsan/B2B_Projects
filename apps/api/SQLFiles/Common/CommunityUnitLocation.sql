@@ -1,0 +1,1 @@
+INSERT INTO community_unit_locations(workspace_id,property_id,unit_id,block_id,floor) VALUES(@workspace,@property,@unit,@block,@floor) ON CONFLICT(workspace_id,unit_id) DO UPDATE SET block_id=excluded.block_id,floor=excluded.floor;

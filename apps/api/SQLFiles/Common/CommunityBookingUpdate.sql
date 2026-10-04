@@ -1,0 +1,1 @@
+UPDATE community_bookings SET revision=@Revision,facility_id=@FacilityId,user_id=@UserId,starts_at=@StartsAt,ends_at=@EndsAt,status=@Status,price=@Price,currency=@Currency,submission_id=@SubmissionId WHERE workspace_id=@WorkspaceId AND property_id=@PropertyId AND id=@Id AND revision=@Revision-1;

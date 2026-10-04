@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import { AccountHeader } from '../components/ProfileMenu';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Text, View } from 'react-native';
@@ -16,11 +17,11 @@ function Navigation() {
     <Button label={t('signOut')} variant="secondary" onPress={() => { void auth.signOut().catch(() => auth.refreshContext()); }} />
   </View>;
   const signedIn = !!auth.context && isMobileRole(auth.context.role);
-  const scope = JSON.stringify([auth.context?.role, auth.context?.properties.map(p => [p.id, p.units])]);
-  return <><StatusBar style="dark" /><Stack key={scope} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+  const scope = JSON.stringify([auth.context?.role, auth.context?.userContext, auth.context?.properties.map(p => [p.id, p.units])]);
+  return <View style={{flex:1}}><StatusBar style="dark" />{signedIn&&<AccountHeader/>}<View style={{flex:1}}><Stack key={scope} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
     <Stack.Protected guard={!signedIn}><Stack.Screen name="sign-in" /></Stack.Protected>
     <Stack.Protected guard={signedIn}><Stack.Screen name="(tabs)" /><Stack.Screen name="repair/[id]" /><Stack.Screen name="issue/[id]" /></Stack.Protected>
-  </Stack></>;
+  </Stack></View></View>;
 }
 export default function RootLayout() {
   return <SafeAreaProvider><I18nProvider><AuthProvider><Navigation /></AuthProvider></I18nProvider></SafeAreaProvider>;

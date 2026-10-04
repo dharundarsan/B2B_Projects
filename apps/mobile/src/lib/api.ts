@@ -3,7 +3,7 @@ import type { ApartmentInput, CommonInput, CommonIssue, GateVisit, Message, Mobi
 
 export class ApiError extends Error { constructor(message: string, public readonly status: number) { super(message); } }
 const base = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/+$/, '');
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (!base) throw new ApiError('Set EXPO_PUBLIC_API_URL to your C# API address.', 503);
   if (!__DEV__ && !base.startsWith('https://')) throw new ApiError('Production API connections require HTTPS.', 503);
   const session = await supabase?.auth.getSession();

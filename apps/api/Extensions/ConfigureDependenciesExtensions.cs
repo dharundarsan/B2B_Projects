@@ -20,9 +20,14 @@ public static class ConfigureDependenciesExtensions
         services.AddScoped<IRepairBL, RepairBL>();
         services.AddScoped<IMobileDAL, MobileDAL>();
         services.AddScoped<IMobileBL, MobileBL>();
+        services.AddScoped<CommunityDAL>();
+        services.AddScoped<CommunityBL>();
+        services.AddScoped<UserDAL>();
+        services.AddScoped<UserManagementBL>();
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<IEvidenceBL, EvidenceBL>();
         services.AddHttpClient<SupabaseIdentity>(client => client.Timeout = TimeSpan.FromSeconds(10));
+        services.AddHttpClient<SupabaseAdmin>(client => client.Timeout = TimeSpan.FromSeconds(20));
         services.AddHttpClient<EvidenceStorage>(client => client.Timeout = TimeSpan.FromSeconds(20));
         services.AddHttpContextAccessor();
         services.AddScoped<Actor>(provider => provider.GetRequiredService<IHttpContextAccessor>().HttpContext?.Items["actor"] as Actor

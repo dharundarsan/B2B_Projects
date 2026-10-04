@@ -10,7 +10,7 @@ public sealed class SupabaseIdentity(HttpClient client, IConfiguration configura
     public async Task<Actor> Authenticate(HttpContext context)
     {
         if (environment.IsDevelopment() && configuration.GetValue<bool>("Demo:Enabled"))
-            return new Actor("demo-owner", "demo-workspace", "demo", "demo@repairledger.local", null, []);
+            return new Actor("demo-owner", "demo-workspace", "demo", "demo@communityhub.local", null, [], DisplayName:"Maya Chen");
         var header = context.Request.Headers.Authorization.ToString();
         if (!header.StartsWith("Bearer ", StringComparison.Ordinal) || header.Length > 10000) throw new ApiException(401, "Sign in to access this workspace.");
         var url = configuration["Supabase:Url"];
@@ -26,8 +26,8 @@ public sealed class SupabaseIdentity(HttpClient client, IConfiguration configura
         var user = await response.Content.ReadFromJsonAsync<JsonObject>(context.RequestAborted) ?? throw new ApiException(401, "Invalid session.");
         var id = user["id"]?.GetValue<string>() ?? throw new ApiException(401, "Invalid session.");
         var metadata = user["app_metadata"] as JsonObject ?? [];
-        var role = metadata["role"]?.GetValue<string>() ?? "owner";
-        if (role is not ("owner" or "manager" or "tenant" or "vendor" or "watchman")) throw new ApiException(403, "Account role is not supported.");
+        var role = metadata["role"]?.GetValue<string>() ?? "member";
+        if (role is not ("member" or "owner" or "manager" or "tenant" or "vendor" or "watchman" or "unit_owner" or "operator")) throw new ApiException(403, "Account role is not supported.");
         var workspace = metadata["workspace_id"]?.GetValue<string>() ?? id;
         var units = new Dictionary<string, string[]>();
         var propertyIds = (metadata["property_ids"] as JsonArray)?.Select(x => x?.GetValue<string>()).ToHashSet();

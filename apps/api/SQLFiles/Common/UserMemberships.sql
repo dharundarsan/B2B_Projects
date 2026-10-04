@@ -1,0 +1,1 @@
+SELECT m.*,u.label AS unit_label FROM user_memberships m LEFT JOIN property_units u ON u.workspace_id=m.workspace_id AND u.property_id=m.property_id AND u.id=m.unit_id WHERE m.workspace_id=@workspace AND m.user_id=@user;

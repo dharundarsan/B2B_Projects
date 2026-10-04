@@ -1,0 +1,1 @@
+INSERT INTO community_products (id,workspace_id,property_id,revision,created_at,seller_id,name,description,kind,ingredients,allergens,price,currency,stock,status) VALUES (@Id,@WorkspaceId,@PropertyId,@Revision,@CreatedAt,@SellerId,@Name,@Description,@Kind,@Ingredients,@Allergens,@Price,@Currency,@Stock,@Status);

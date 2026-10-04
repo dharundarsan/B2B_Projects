@@ -6,7 +6,7 @@ public sealed partial class RepairDAL
     public async Task<List<Property>> Properties(Actor actor, CancellationToken ct)
     {
         var residentUnits = actor.ResidentUnits;
-        if (!actor.IsManager && (actor.Role != "tenant" || residentUnits.Count == 0)) return [];
+        if (!actor.IsManager && (actor.Context != 1 || actor.Role != "tenant" || residentUnits.Count == 0)) return [];
         var parameters = new DynamicParameters(new { workspace = actor.WorkspaceId });
         var scope = "p.workspace_id=@workspace AND p.archived=0";
         if (!actor.IsManager)
@@ -44,9 +44,9 @@ public sealed partial class RepairDAL
     public async Task ArchiveProperty(Actor actor, string id, CancellationToken ct)
     {
         actor.RequireManager(); await using var db = await database.Open(ct); await using var tx = await db.BeginTransactionAsync(ct);
-        var p = new { workspace = actor.WorkspaceId, id };
+        var p = new { workspace = actor.WorkspaceId, id, today=DateTimeOffset.UtcNow.ToString("yyyy-MM-dd"), now=DateTimeOffset.UtcNow.ToString("O") };
         if (await dapper.ExecuteAsync(db, new CommandDefinition(queryHelper.GetSqlQuery("LockProperty"), p, tx, cancellationToken: ct)) != 1) throw new ApiException(404, "Property not found.");
-        if (await dapper.ExecuteScalarAsync<int>(db, new CommandDefinition(queryHelper.GetSqlQuery("CountActivePropertyRepairs"), p, tx, cancellationToken: ct)) > 0) throw new ApiException(409, "Close active repairs, resolve shared-area reports and record outstanding departures before archiving this property.");
+        if (await dapper.ExecuteScalarAsync<int>(db, new CommandDefinition(queryHelper.GetSqlQuery("CountActivePropertyRepairs"), p, tx, cancellationToken: ct)) > 0) throw new ApiException(409, "Resolve active repairs, leases, unpaid balances, orders, group buys, gate entries and bookings before archiving this property.");
         await dapper.ExecuteAsync(db, new CommandDefinition(queryHelper.GetSqlQuery("ArchiveProperty"), p, tx, cancellationToken: ct)); await tx.CommitAsync(ct);
     }
     public async Task<List<PropertyUnit>> Units(Actor actor, string property, CancellationToken ct)

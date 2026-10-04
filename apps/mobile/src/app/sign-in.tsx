@@ -16,7 +16,7 @@ export default function SignIn() {
     finally { lock.current = false; setBusy(false); }
   };
   return <Screen>
-    <View style={[s.row, { marginTop: 20 }]}><View style={[s.avatar, { backgroundColor: colors.brand }]}><Icon name="construct-outline" /></View><Text style={s.h3}>RepairLedger</Text></View>
+    <View style={[s.row, { marginTop: 20 }]}><View style={[s.avatar, { backgroundColor: colors.brand }]}><Icon name="business-outline" /></View><Text style={s.h3}>CommunityHub</Text></View>
     <Heading eyebrow="APARTMENT CARE, CONNECTED" title={t('welcome')} subtitle={t('loginHelp')} />
     <Card><Field label={t('email')} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoComplete="email" maxLength={254} />
       <Field label={t('password')} value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" onSubmitEditing={() => { void submit(); }} maxLength={200} />

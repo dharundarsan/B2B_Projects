@@ -1,0 +1,1 @@
+INSERT INTO community_services(workspace_id,property_id,id,revision,created_at,seller_id,name,category,description,price,currency,price_unit,status) VALUES (@WorkspaceId,@PropertyId,@Id,@Revision,@CreatedAt,@SellerId,@Name,@Category,@Description,@Price,@Currency,@PriceUnit,@Status);

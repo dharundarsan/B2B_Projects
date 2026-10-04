@@ -1,0 +1,28 @@
+namespace RepairLedger.Api.Models.Inputs;
+
+public sealed record PartyInput(string Name, string Kind, string? UserId);
+public sealed record OwnershipInput(string UnitId, string PartyId, decimal Share, decimal IncomeShare, decimal ExpenseShare, string StartsOn, string? EndsOn);
+public sealed record AgreementInput(string Kind, string DebtorPartyId, string CreditorPartyId, string? ParentId, string? OccupancyId, string[] UnitIds, string StartsOn, string EndsOn, decimal Rent, decimal Deposit, string Currency, int DueDay);
+public sealed record GenerateRentInput(string Month);
+public sealed record PaymentInput(string ChargeId, decimal Amount, string Reference, string SubmissionId);
+public sealed record CommunityActionInput(string Action, long Revision);
+public sealed record EndAgreementInput(string EndsOn, long Revision);
+public sealed record EndOwnershipInput(string EndsOn, long Revision);
+public sealed record ExpenseInput(string Scope, string? UnitId, string? PartyId, string Category, string Description, decimal Amount, string Currency, string IncurredOn, string PaidStatus, List<ExpenseAllocation> Allocations);
+public sealed record SellerInput(string Name, string Kind, string Pickup, string? UserId);
+public sealed record ProductInput(string SellerId, string Name, string Description, string Kind, string Ingredients, string Allergens, decimal Price, string Currency, int Stock, string Status, long Revision = 0);
+public sealed record OrderInput(string ProductId, int Quantity, string SubmissionId);
+public sealed record ServiceInput(string SellerId,string Name,string Category,string Description,decimal Price,string Currency,string PriceUnit,string Status,long Revision=0);
+public sealed record ServiceRequestInput(string ServiceId,string Description,string PreferredAt,string SubmissionId);
+public sealed record GroupInput(string ProductId, decimal UnitPrice, int Minimum, int Maximum, string ClosesAt, string Pickup);
+public sealed record PledgeInput(int Quantity, long Revision);
+public sealed record GateInput(string Kind, string Name, string UnitId, string ExpectedAt, string? ResidentUserId, string? OccupancyId);
+public sealed record FacilityInput(string Name, int Capacity, int SlotMinutes, decimal Price, string Currency, string Rules);
+public sealed record BookingInput(string FacilityId, string StartsAt, string SubmissionId);
+public sealed record CommunityNoteInput(string Kind, string Title, string Body, string? AssignedUserId);
+public sealed record LayoutInput(int Floor, string Name, List<LayoutShape> Shapes, long Revision, string? BlockId = null);
+public sealed record BlockInput(string Name, long Revision = 0);
+public sealed record FlatBatchInput(string BlockId,int Floor,string[] Labels);
+public sealed record FlatLocationInput(string BlockId,int Floor);
+public sealed record DeliveryInput(string Name,string Reference,string Notes,int Packages,bool Bulk,string ExpectedAt,string? SellerId=null,string? UnitId=null);
+public sealed record ReceiptInput(string Name, string ContentType, long Size);

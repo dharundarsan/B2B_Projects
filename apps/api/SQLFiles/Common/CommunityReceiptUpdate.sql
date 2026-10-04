@@ -1,0 +1,1 @@
+UPDATE community_receipts SET revision=@Revision,expense_id=@ExpenseId,path=@Path,name=@Name,content_type=@ContentType,size=@Size,status=@Status WHERE workspace_id=@WorkspaceId AND property_id=@PropertyId AND id=@Id AND revision=@Revision-1;

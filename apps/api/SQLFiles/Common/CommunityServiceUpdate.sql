@@ -1,0 +1,1 @@
+UPDATE community_services SET revision=@Revision,seller_id=@SellerId,name=@Name,category=@Category,description=@Description,price=@Price,currency=@Currency,price_unit=@PriceUnit,status=@Status WHERE workspace_id=@WorkspaceId AND property_id=@PropertyId AND id=@Id AND revision=@Revision-1;

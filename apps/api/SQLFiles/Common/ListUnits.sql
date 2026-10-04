@@ -1,1 +1,1 @@
-SELECT * FROM property_units WHERE workspace_id=@workspace AND property_id=@property AND archived=0 {UnitScope} ORDER BY label,id
+SELECT u.*,l.block_id,l.floor FROM property_units u LEFT JOIN community_unit_locations l ON l.workspace_id=u.workspace_id AND l.unit_id=u.id WHERE u.workspace_id=@workspace AND u.property_id=@property AND u.archived=0 {UnitScope} ORDER BY u.label,u.id

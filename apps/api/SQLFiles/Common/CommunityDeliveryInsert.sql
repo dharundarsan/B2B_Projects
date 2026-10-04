@@ -1,0 +1,1 @@
+INSERT INTO community_deliveries(id,workspace_id,property_id,revision,created_at,user_id,seller_id,unit_id,name,reference,notes,packages,bulk,expected_at,approval,status,accepted_at,received_at) VALUES(@Id,@WorkspaceId,@PropertyId,@Revision,@CreatedAt,@UserId,@SellerId,@UnitId,@Name,@Reference,@Notes,@Packages,@Bulk,@ExpectedAt,@Approval,@Status,@AcceptedAt,@ReceivedAt);

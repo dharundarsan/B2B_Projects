@@ -1,0 +1,1 @@
+UPDATE community_groups SET revision=@Revision,product_id=@ProductId,seller_id=@SellerId,unit_price=@UnitPrice,currency=@Currency,minimum=@Minimum,maximum=@Maximum,closes_at=@ClosesAt,pickup=@Pickup,status=@Status WHERE workspace_id=@WorkspaceId AND property_id=@PropertyId AND id=@Id AND revision=@Revision-1;

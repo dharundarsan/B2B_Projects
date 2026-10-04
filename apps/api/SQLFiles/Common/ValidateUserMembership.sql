@@ -1,0 +1,1 @@
+SELECT COUNT(*) FROM properties p WHERE p.workspace_id=@workspace AND p.id=@property AND p.archived=0 AND (@unit IS NULL OR EXISTS(SELECT 1 FROM property_units u WHERE u.workspace_id=p.workspace_id AND u.property_id=p.id AND u.id=@unit AND u.archived=0));

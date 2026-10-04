@@ -2,14 +2,15 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { AppState, Platform } from 'react-native';
 import type { Session } from '@supabase/supabase-js';
 import { supabase, previewEnabled } from '../lib/supabase';
-import { api, ApiError } from '../lib/api';
+import { api, ApiError, request } from '../lib/api';
+import type { AccountView } from '../../../../shared/accountView';
 import { createPreviewClient } from '../lib/demo';
 import type { MobileContext, MobileRole } from '../types';
 
 interface AuthValue {
   loading: boolean; context: MobileContext | null; error: string; session: Session | null;
   client: typeof api; preview: boolean; signIn(email: string, password: string): Promise<void>;
-  signOut(): Promise<void>; enterPreview(role: MobileRole): void; refreshContext(): void;
+  signOut(): Promise<void>; enterPreview(role: MobileRole): void; refreshContext(): void; switchView(next:1|2|3):Promise<void>;
 }
 const Auth = createContext<AuthValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -53,7 +54,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const result = await supabase?.auth.signOut({ scope: 'local' }); if (result?.error) throw result.error;
     setContext(null); setSession(null); setError('');
   };
+  const switchView = async (next:1|2|3) => {
+    if (!context?.availableContexts?.includes(next) || previewRole) throw new Error('That view is not enabled for this account.');
+    const view=await request<AccountView>('/user/context');
+    await request<AccountView>('/user/context',{method:'PATCH',body:JSON.stringify({userContext:next,revision:view.revision})});
+    setContext(null); setLoading(true);
+    setError('');
+    try {setContext(await client.context());}
+    catch(e) {setError(e instanceof Error ? e.message : 'Could not load your selected view.');throw e;}
+    finally {setLoading(false);}
+  };
   return <Auth.Provider value={{ loading, context, error, session, client, preview: !!previewRole, signIn, signOut,
+    switchView,
     enterPreview: role => { if (previewEnabled) { setContext(null); setLoading(true); setPreviewRole(role); } }, refreshContext: () => refresh(value => value + 1) }}>{children}</Auth.Provider>;
 }
 export function useAuth() { const value = useContext(Auth); if (!value) throw new Error('AuthProvider is required.'); return value; }

@@ -1,0 +1,1 @@
+UPDATE community_charges SET revision=@Revision,agreement_id=@AgreementId,kind=@Kind,period=@Period,due_on=@DueOn,amount=@Amount,currency=@Currency WHERE workspace_id=@WorkspaceId AND property_id=@PropertyId AND id=@Id AND revision=@Revision-1;

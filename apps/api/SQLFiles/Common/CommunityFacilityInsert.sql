@@ -1,0 +1,1 @@
+INSERT INTO community_facilities (id,workspace_id,property_id,revision,created_at,name,capacity,slot_minutes,price,currency,rules,status) VALUES (@Id,@WorkspaceId,@PropertyId,@Revision,@CreatedAt,@Name,@Capacity,@SlotMinutes,@Price,@Currency,@Rules,@Status);

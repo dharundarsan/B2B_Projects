@@ -7,7 +7,7 @@ namespace RepairLedger.Api.Helpers;
 public sealed class DatabaseMigrationHelper(IConnectionHelper connection, ISqlFileQueryHelper sql, IDapperHelper dapper,
     IConfiguration configuration, ILogger<DatabaseMigrationHelper> logger)
 {
-    public const int CurrentVersion = 5;
+    public const int CurrentVersion = 9;
     public async Task Initialize(CancellationToken ct)
     {
         await using var db = await connection.Open(ct);
@@ -101,6 +101,9 @@ public sealed class DatabaseMigrationHelper(IConnectionHelper connection, ISqlFi
 
     private async Task<bool> AlreadyApplied(System.Data.Common.DbConnection db, string statement, CancellationToken ct)
     {
+        var drop = System.Text.RegularExpressions.Regex.Match(statement, @"^ALTER\s+TABLE\s+(?<table>[a-z_]+)\s+DROP\s+CHECK\s+(?<name>[a-z_]+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (drop.Success) return await dapper.ExecuteScalarAsync<int>(db, new CommandDefinition(sql.GetSqlQuery("MigrationConstraintExists"),
+            new { table = drop.Groups["table"].Value, name = drop.Groups["name"].Value }, cancellationToken: ct)) == 0;
         var match = System.Text.RegularExpressions.Regex.Match(statement,
             @"^ALTER\s+TABLE\s+\x60?(?<table>[a-z_]+)\x60?\s+ADD\s+(?<kind>COLUMN|CONSTRAINT|UNIQUE\s+KEY|KEY)\s+\x60?(?<name>[a-z_]+)\x60?",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase);

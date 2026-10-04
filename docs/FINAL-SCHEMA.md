@@ -1,8 +1,8 @@
-# RepairLedger — finalized schema (version 5)
+# CommunityHub — finalized schema (version 9)
 
 This document describes the schema implemented in the C# API, not a proposed future schema.
 Development and Production use MySQL 8.4 LTS / InnoDB. SQLite is an explicit offline/test provider. Supabase is used only for Auth/private Storage.
-There are **18 application tables plus `schema_migrations`**.
+There are **47 application tables plus `schema_migrations`**. Migration 007 adds `users` for the persisted account view; see [ADMIN-AND-USER-VIEWS.md](ADMIN-AND-USER-VIEWS.md). Migration 008 extends users for managed permissions and adds user_memberships, user_admin_audit, community_services and community_service_requests; see [COMMUNITYHUB-REVAMP.md](COMMUNITYHUB-REVAMP.md). The 20 community tables added by migration 006 are described in [COMMUNITY-PLATFORM.md](COMMUNITY-PLATFORM.md); the maintenance tables below retain their existing shape.
 
 - Full production DDL: [RepairLedger-Final-MySql.sql](schema/RepairLedger-Final-MySql.sql).
 - Existing installations: run the embedded migrations under `apps/api/DatabaseScripts`; never run the final-schema snapshot against populated data.
@@ -13,9 +13,9 @@ There are **18 application tables plus `schema_migrations`**.
 ## Ownership and keys
 
 A workspace is the landlord's organization. Properties, units, vendors and all repair records are workspace-scoped.
-Supabase owns authentication identities. Actor IDs in audit/read/history records are Supabase user IDs (or the explicit Development demo identity), not duplicate password/account tables.
+Supabase owns authentication identities. Actor IDs in audit/read/history records are Supabase user IDs (or the explicit Development demo identity), not password tables. The local account directory stores access configuration and identity references; passwords remain in Auth.
 
-Except for `workspaces`, `request_locations`, `notification_reads`, `gate_presence` and `schema_migrations`, tables use a composite primary key `(workspace_id,id)`.
+Except for `users` and `user_memberships` (workspace/user and workspace/user/property keys), `workspaces`, `request_locations`, `notification_reads`, `gate_presence` and `schema_migrations`, tables use a composite primary key `(workspace_id,id)`.
 IDs are utf8mb4 VARCHAR(200), preserving string identifiers within that bound; new IDs are GUID strings. Legacy-derived unit IDs use VARCHAR(300) and offer/verification IDs VARCHAR(256). Review oversized legacy IDs before import. Composite indexes remain under InnoDB's 3072-byte limit.
 Cross-record references include `workspace_id`, so referencing another landlord's property/vendor/repair fails at the database level.
 Do not take workspace or actor IDs from request bodies: they come from validated trusted app metadata.
@@ -139,3 +139,13 @@ Grant runtime SELECT on schema_migrations and SELECT/INSERT/UPDATE on applicatio
 - Migration test starts with a real version-1 schema, upgrades it twice, and checks preservation/backfill/idempotency.
 - HTTP smoke: `pwsh -File scripts/test-api.ps1` after a Release build. It launches its own loopback port and temporary database and stops only its own process.
 - Full financial, live Supabase/storage and Production load verification still require your deployment credentials and infrastructure.
+
+## Community structure and delivery migration 009
+
+Existing properties represent communities at individual locations. `community_blocks` contains their named towers/blocks. `community_unit_locations` assigns an existing flat ID to a block and integer floor; old flats remain unassigned until organized. Stable flat IDs and community-wide unique labels preserve resident and finance links. Use A-101 and B-101 when different blocks share a flat number.
+
+`community_block_layouts` stores independent draft/published plans for each block and floor. Existing `community_layouts` remain available as previous/unassigned plans. Moving a linked flat requires unlinking and publishing its old map first.
+
+`community_deliveries` tracks personal and seller stock deliveries, package count, handling instructions, approval and gate/recipient handover. Personal deliveries are restricted to the requesting user and up to 20 packages; larger seller deliveries must be bulk. Bulk requires admin approval. Gate acceptance is restricted to approved deliveries expected that day; only the intended recipient in the matching view confirms receipt. Pending/accepted deliveries prevent community archival.
+
+Migrations are additive; applied scripts 001–008 remain intact. Run `npm run db:migrate` before restarting an existing API. Administrator permissions remain workspace-wide; community-specific administrator delegation is a separate deferred decision.

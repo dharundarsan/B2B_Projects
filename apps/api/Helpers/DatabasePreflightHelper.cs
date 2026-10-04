@@ -7,9 +7,12 @@ public sealed class DatabasePreflightHelper(IConnectionHelper connection, ISqlFi
 {
     private static readonly string[] Tables =
     [
-        "schema_migrations", "workspaces", "properties", "property_units", "requests", "request_locations",
+        "schema_migrations", "users", "user_memberships", "user_admin_audit", "community_services", "community_service_requests", "workspaces", "properties", "property_units", "requests", "request_locations",
         "vendors", "vendor_offers", "events", "estimates", "appointments", "evidence", "messages",
-        "request_verifications", "notifications", "notification_reads", "gate_presence", "common_area_issues", "common_area_issue_events"
+        "request_verifications", "notifications", "notification_reads", "gate_presence", "common_area_issues", "common_area_issue_events",
+        "community_parties", "community_ownerships", "community_agreements", "community_agreement_units", "community_charges", "community_payments",
+        "community_expenses", "community_expense_allocations", "community_receipts", "community_sellers", "community_products", "community_orders",
+        "community_groups", "community_pledges", "community_gate_entries", "community_facilities", "community_bookings", "community_notes", "community_layouts", "community_blocks", "community_unit_locations", "community_block_layouts", "community_deliveries", "community_audit"
     ];
     private sealed class TableMetadata
     {

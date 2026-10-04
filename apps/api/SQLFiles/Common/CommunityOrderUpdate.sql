@@ -1,0 +1,1 @@
+UPDATE community_orders SET revision=@Revision,product_id=@ProductId,seller_id=@SellerId,user_id=@UserId,group_id=@GroupId,quantity=@Quantity,unit_price=@UnitPrice,currency=@Currency,status=@Status,payment_status=@PaymentStatus,submission_id=@SubmissionId WHERE workspace_id=@WorkspaceId AND property_id=@PropertyId AND id=@Id AND revision=@Revision-1;

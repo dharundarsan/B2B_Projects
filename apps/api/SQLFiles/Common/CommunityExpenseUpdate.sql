@@ -1,0 +1,1 @@
+UPDATE community_expenses SET revision=@Revision,scope=@Scope,unit_id=@UnitId,party_id=@PartyId,category=@Category,description=@Description,amount=@Amount,currency=@Currency,incurred_on=@IncurredOn,paid_status=@PaidStatus,user_id=@UserId WHERE workspace_id=@WorkspaceId AND property_id=@PropertyId AND id=@Id AND revision=@Revision-1;

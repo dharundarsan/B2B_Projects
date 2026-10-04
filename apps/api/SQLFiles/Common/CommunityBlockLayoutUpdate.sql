@@ -1,0 +1,1 @@
+UPDATE community_block_layouts SET revision=@Revision,name=@Name,draft_json=@DraftJson,published_json=@PublishedJson,published_at=@PublishedAt WHERE workspace_id=@WorkspaceId AND property_id=@PropertyId AND id=@Id AND revision=@Revision-1;

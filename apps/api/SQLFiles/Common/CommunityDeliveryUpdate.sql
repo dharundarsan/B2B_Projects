@@ -1,0 +1,1 @@
+UPDATE community_deliveries SET revision=@Revision,approval=@Approval,status=@Status,accepted_at=@AcceptedAt,received_at=@ReceivedAt WHERE workspace_id=@WorkspaceId AND property_id=@PropertyId AND id=@Id AND revision=@Revision-1;

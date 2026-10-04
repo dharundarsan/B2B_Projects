@@ -1,0 +1,1 @@
+UPDATE community_payments SET revision=@Revision,charge_id=@ChargeId,amount=@Amount,reference=@Reference,status=@Status,user_id=@UserId,submission_id=@SubmissionId,verified_by=@VerifiedBy WHERE workspace_id=@WorkspaceId AND property_id=@PropertyId AND id=@Id AND revision=@Revision-1;

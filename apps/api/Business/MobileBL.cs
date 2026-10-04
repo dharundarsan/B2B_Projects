@@ -8,7 +8,8 @@ public sealed class MobileBL(IMobileDAL repository, TimeProvider time) : IMobile
         var properties = await repository.Properties(actor, ct);
         foreach (var property in properties)
             property.Units = actor.Role == "tenant" ? actor.ResidentUnits.GetValueOrDefault(property.Id) ?? [] : [];
-        return new(actor.Role, actor.Email, properties);
+        var views=new[]{actor.UserAccess!=false?1:0,actor.CanAdmin?2:0,actor.SellerAccess==true||actor.CanAdmin?3:0}.Where(x=>x>0).ToArray();
+        return new(actor.Role, actor.Email, properties, actor.Context, views.Length>1,views,actor.DisplayName??actor.Email.Split('@')[0]);
     }
     public async Task<List<GateVisit>> Visits(Actor actor, CancellationToken ct)
     {

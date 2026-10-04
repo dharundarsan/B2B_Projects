@@ -1,7 +1,7 @@
 export type MobileRole = 'tenant' | 'watchman';
 export type Language = 'en' | 'hi' | 'ta';
 export interface MobileProperty { id: string; name: string; timezone: string; units: string[] }
-export interface MobileContext { role: string; email: string; properties: MobileProperty[] }
+export interface MobileContext { role: string; email: string; properties: MobileProperty[]; userContext?: 1|2|3; canSwitchContext?: boolean; availableContexts?: (1|2|3)[]; displayName?: string }
 export interface Appointment { id: string; startsAt: string; endsAt: string; timezone: string; status: 'proposed' | 'confirmed' | 'cancelled'; residentConfirmedAt?: string; vendorConfirmedAt?: string }
 export interface Evidence { id: string; name: string; contentType: string; size: number; status: 'uploading' | 'uploaded' }
 export interface Repair {

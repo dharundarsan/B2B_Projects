@@ -1,0 +1,1 @@
+INSERT INTO community_payments (id,workspace_id,property_id,revision,created_at,charge_id,amount,reference,status,user_id,submission_id,verified_by) VALUES (@Id,@WorkspaceId,@PropertyId,@Revision,@CreatedAt,@ChargeId,@Amount,@Reference,@Status,@UserId,@SubmissionId,@VerifiedBy);

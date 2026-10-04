@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode, ButtonHTMLAttributes } from "react";
 import { Link } from "react-router-dom";
 import {
   AlertCircle,
@@ -32,29 +32,8 @@ export function PageHeader({
     </div>
   );
 }
-export function Button({
-  children,
-  variant = "primary",
-  onClick,
-  type = "button",
-  disabled = false,
-}: {
-  children: ReactNode;
-  variant?: "primary" | "secondary" | "ghost" | "danger";
-  onClick?: () => void;
-  type?: "button" | "submit";
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type={type}
-      disabled={disabled}
-      onClick={onClick}
-      className={`button ${variant}`}
-    >
-      {children}
-    </button>
-  );
+export function Button({children,variant="primary",type="button",className="",...props}:ButtonHTMLAttributes<HTMLButtonElement>&{variant?:"primary"|"secondary"|"ghost"|"danger"}) {
+  return <button {...props} type={type} className={`button ${variant} ${className}`}>{children}</button>;
 }
 export function Pill({
   children,

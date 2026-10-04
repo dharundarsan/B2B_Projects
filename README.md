@@ -1,7 +1,12 @@
-# RepairLedger
-One B2B apartment-maintenance project with a React + TypeScript web app, a React Native resident/watchman app, and a shared ASP.NET Core 10 API. The backend uses Dapper raw SQL and MySQL 8.4; Supabase provides Auth and private Storage.
+# CommunityHub
 
-This is the main working copy under `D:\B2B\RepairLedger-Web-and-Mobile-Final\RepairLedger-app-source`. Run root commands here, not from the older source copies or the parent extraction folder.
+Apartment management for admins, residents and local sellers/providers. The profile menu opens your enabled **User (1), Admin (2) and Seller / Provider (3)** views. Start at `/admin`, `/home` or `/seller`; `/community` redirects to the selected home. See [the management revamp](docs/COMMUNITYHUB-REVAMP.md) for accounts, permissions, services and rollout.
+
+An apartment community platform with maintenance, internal shops and resident selling, group buys, ownership and rental ledgers, expenses, facilities, gate operations and editable building maps. React + TypeScript web, React Native mobile and ASP.NET Core 10 share a Dapper/MySQL backend; Supabase provides Auth and private Storage.
+
+This working copy is at `D:\B2B projects\Apartment App`. Run root commands here. The extracted `RepairLedger-context-2026-10-03` folder is reference material.
+
+Open **Community** in the web navigation or mobile tabs. See [community features and rollout](docs/COMMUNITY-PLATFORM.md) for account provisioning, migrations through 007, supported workflows and verification. Administrators can switch between [User (1) and Admin (2) views](docs/ADMIN-AND-USER-VIEWS.md) on both clients; the preference is saved in the users table.
 
 ```text
 RepairLedger-app-source/
@@ -16,7 +21,7 @@ RepairLedger-app-source/
 
 For the combined web/mobile source snapshot, installation order, verification results and release limitations, start with [the final handoff guide](FINAL-HANDOFF.md).
 
-A separate [React Native mobile app](apps/mobile/README.md) now supports apartment residents and watchmen. Install its dependencies in `apps/mobile`; it does not replace or upgrade the web app's React workspace. Run `npm run preview:mobile` for local sample-data previews or `npm run dev:mobile` for the configured app. Apply migrations through **005** for live operations (004 adds mobile tables; 005 adds resident privacy).
+A separate [React Native mobile app](apps/mobile/README.md) supports administrators, residents, watchmen, scoped owners and operators. Install its dependencies in `apps/mobile`. Run `npm run preview:mobile` for maintenance sample-data previews or `npm run dev:mobile` for the configured app. Apply migrations through **007** for community operations and saved views (004 adds mobile tables; 005 adds resident privacy; 006 adds community tables).
 
 Resident access now requires an account-specific, dated occupancy assignment, not just a unit label. Existing repairs remain unlinked until a manager explicitly links an eligible account and period. Read [the resident provisioning and rollout guide](docs/RESIDENT-PRIVACY.md) before enabling real resident accounts; property/unit-only metadata is no longer sufficient.
 
@@ -76,7 +81,7 @@ For a local demo of the Release API, set `$env:ASPNETCORE_ENVIRONMENT="Developme
 ## Production
 
 Use MySQL 8.4 LTS. Supabase is used for Auth and private Storage, not MySQL hosting. Configure secrets in environment variables or .NET user-secrets, never Vite variables. See [setup](docs/SETUP.md).
-Deploy the frontend to Vercel with `VITE_API_URL=https://your-api-host`. Deploy the C# API separately on a container/.NET host. The old Node Vercel function has been removed: there is no official Vercel ASP.NET Core runtime.
+Frontend Vercel configurations are included; use `VITE_API_URL=https://your-api-host`. Deploy the C# API separately on a container/.NET host. This repository has no Vercel Functions/container adapter. The free Hobby plan allows personal, non-commercial use. See [the mobile MFE and hosting assessment](docs/MOBILE-MFE-FEASIBILITY.md) for the architecture decision and requirements.
 Build the backend container from the repository root:
 `docker build -f apps/api/Dockerfile -t repairledger-api .`
 
@@ -86,3 +91,5 @@ The backend follows the controller/BL/DAL/helper conventions of the referenced D
 See [backend structure](docs/BACKEND-STRUCTURE.md), [finalized schema](docs/FINAL-SCHEMA.md) and [full MySQL DDL](docs/schema/RepairLedger-Final-MySql.sql).
 See [product and UI review](docs/PRODUCT-AND-UI-REVIEW.md) for competitor evidence, implemented screens, actual screenshots and the prioritized pilot roadmap.
 After a Release build, `pwsh -File scripts/test-api.ps1` tests the HTTP flow with an isolated temporary database.
+
+See [CommunityHub workspace design](docs/COMMUNITYHUB-DESIGN.md) for the current admin/resident/seller navigation, design references and validation.

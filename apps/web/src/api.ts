@@ -67,7 +67,7 @@ export function validateEvidence(file: File) {
     throw new Error("Choose a non-empty file of at most 20 MB.");
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const session = supabase
     ? (await supabase.auth.getSession()).data.session
     : null;

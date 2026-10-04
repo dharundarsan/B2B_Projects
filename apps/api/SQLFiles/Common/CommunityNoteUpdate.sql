@@ -1,0 +1,1 @@
+UPDATE community_notes SET revision=@Revision,kind=@Kind,title=@Title,body=@Body,user_id=@UserId,assigned_user_id=@AssignedUserId,status=@Status WHERE workspace_id=@WorkspaceId AND property_id=@PropertyId AND id=@Id AND revision=@Revision-1;

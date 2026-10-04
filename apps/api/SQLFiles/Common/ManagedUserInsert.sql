@@ -1,0 +1,1 @@
+INSERT INTO users(workspace_id,user_id,user_context,revision,display_name,email,identity_role,managed_role,status,allow_user,allow_admin,allow_seller,created_at) VALUES (@workspace,@user,@context,0,@name,@email,@role,@role,'active',@allowUser,@allowAdmin,@allowSeller,@at);

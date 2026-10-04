@@ -40,7 +40,7 @@ Cors__Origins__0=https://your-frontend.vercel.app
 
 Use a MySQL host of your choice; Supabase remains **Auth + private Storage only**, not the application's MySQL host. No direct Supabase Data API path is used for maintenance records. Keep database credentials/service-role keys on the API host, never in Vite variables or version control.
 
-Use a separate migration account with CREATE/ALTER/INDEX/REFERENCES plus the DML permissions needed for backfill. Runtime needs SELECT on schema_migrations and SELECT/INSERT/UPDATE on application tables; it does not need database-create, DROP, ALTER or DELETE rights. Grant permissions only within the dedicated database.
+Use a separate migration account with CREATE/ALTER/INDEX/REFERENCES plus the DML permissions needed for backfill. Runtime needs SELECT on schema_migrations and SELECT/INSERT/UPDATE on application tables, plus DELETE on user_memberships to replace account assignments transactionally. It does not need database-create, DROP or ALTER rights. Grant permissions only within the dedicated database.
 
 The API enforces MySQL plus SslMode=VerifyFull outside Development. Supply the correct CA via SslCa when your provider requires it. Certificate and hostname validation are documented by [MySqlConnector](https://mysqlconnector.net/connection-options/).
 
@@ -54,7 +54,7 @@ Then deploy with the runtime credential and AutoMigrate=false. Do not run the ap
 
 ## Migration safety
 
-Current schema version: **5**. Embedded MySQL migrations live under apps/api/DatabaseScripts/MySql. Migration 004 adds gate presence and common-area operations; 005 adds the paired resident account/occupancy binding and access index. Existing repairs are not automatically linked. Coordinate account provisioning and deployment using [the resident privacy guide](RESIDENT-PRIVACY.md). Use new numbered migrations for future changes; never edit an applied migration.
+Current schema version: **8**. Embedded MySQL migrations live under apps/api/DatabaseScripts/MySql. Migration 004 adds gate presence and common-area operations; 005 adds the paired resident account/occupancy binding and access index. Existing repairs are not automatically linked. Coordinate account provisioning and deployment using [the resident privacy guide](RESIDENT-PRIVACY.md). Use new numbered migrations for future changes; never edit an applied migration.
 
 MySQL DDL [implicitly commits](https://dev.mysql.com/doc/refman/8.4/en/implicit-commit.html). The runner therefore takes a database-specific GET_LOCK on one session, records a SHA-256 checksum and completed flag, and completes the version only after every statement succeeds. Interrupted runs remain unready and may retry the **same unchanged** migration: CREATE TABLE IF NOT EXISTS, guarded ALTER statements and insert-only backfills permit recovery. DDL is not rolled back when a later step fails. Back up real data and schedule a maintenance window.
 
@@ -72,7 +72,7 @@ db:check exit codes:
 
 | Exit | Meaning | Next action |
 | --- | --- | --- |
-| 0 | Schema version 5, required InnoDB tables, tracking columns, strict mode and SELECT access passed | Start the app; independently verify auth/storage, resident provisioning and runtime write grants. |
+| 0 | Schema version 9, required InnoDB tables, tracking columns, strict mode and SELECT access passed | Start the app; independently verify auth/storage, resident provisioning and runtime write grants. |
 | 1 | Configuration, connection, TLS or permission check failed | Fix the settings privately. The command does not print raw connector errors or credentials. |
 | 2 | Connected, but schema/server settings are not ready | For a new empty database, apply migrations. For populated/incomplete installations, back up and investigate first. |
 
@@ -99,16 +99,16 @@ Never run db:migrate blindly to fix an unknown populated schema. Existing Postgr
 
 ## Supabase identity
 
-Tokens are verified through Supabase Auth's user endpoint with bounded HTTP timeouts. Only trusted app_metadata controls authorization:
+Tokens are verified through Supabase Auth's user endpoint with bounded HTTP timeouts. Verified app_metadata establishes the identity/workspace and legacy access. Managed accounts use the server-owned users/user_memberships permissions after verification:
 
-- role: owner, manager, tenant, vendor, watchman.
+- role: member, owner, manager, tenant, unit_owner, operator, vendor, watchman. Missing role defaults to an unassigned member.
 - workspace_id: organization ID; defaults to the authenticated user ID.
 - vendor_id: assigned-job access for vendors.
 - property_ids and property_units: tenants' exact authorized properties/labels.
 - resident_occupancies: tenants' dated occupancy UUIDs, property IDs, unit labels, starts_at and optional ends_at. Active occupancy and property/unit permission are both required; use a new UUID per period.
 - property_ids: watchmen's assigned buildings; gate/shared-area access only, never full resident repairs. See the mobile guide for account examples.
 
-Set metadata through trusted admin tooling, never editable user_metadata. Unknown roles fail closed. Resident reads additionally require the repair's account/occupancy binding and a report date within that active period. Old property/unit-only accounts fail closed. Manager linking validates UUID format, not account existence; independently verify provisioning before linking. See [RESIDENT-PRIVACY.md](RESIDENT-PRIVACY.md) for metadata, legacy-record handling and turnover tests. No administrator account/lease UI is included.
+Set metadata through trusted admin tooling, never editable user_metadata. Unknown roles fail closed. Resident reads additionally require the repair's account/occupancy binding and a report date within that active period. Old property/unit-only accounts fail closed. Manager linking validates UUID format, not account existence; independently verify provisioning before linking. See [RESIDENT-PRIVACY.md](RESIDENT-PRIVACY.md) for metadata, legacy-record handling and turnover tests. Admin > People & access now creates Auth accounts and maintains local roles, enabled views, suspension and building/occupancy assignments. Supabase:ServiceRoleKey is backend-only; creation uses an initial password, without invitation emails. The first owner still needs trusted provisioning. See [COMMUNITYHUB-REVAMP.md](COMMUNITYHUB-REVAMP.md).
 
 ## Evidence
 

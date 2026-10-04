@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "RepairLedger",
+    "name": "CommunityHub",
     "slug": "repairledger-mobile",
     "version": "0.1.0",
     "scheme": "repairledger",
@@ -15,7 +15,7 @@
       "package": "com.repairledger.mobile",
       "blockedPermissions": ["android.permission.RECORD_AUDIO"]
     },
-    "web": { "bundler": "metro", "output": "single", "name": "RepairLedger mobile preview" },
+    "web": { "bundler": "metro", "output": "single", "name": "CommunityHub" },
     "plugins": [
       "expo-router",
       "expo-secure-store",

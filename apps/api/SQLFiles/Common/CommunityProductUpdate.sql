@@ -1,0 +1,1 @@
+UPDATE community_products SET revision=@Revision,seller_id=@SellerId,name=@Name,description=@Description,kind=@Kind,ingredients=@Ingredients,allergens=@Allergens,price=@Price,currency=@Currency,stock=@Stock,status=@Status WHERE workspace_id=@WorkspaceId AND property_id=@PropertyId AND id=@Id AND revision=@Revision-1;

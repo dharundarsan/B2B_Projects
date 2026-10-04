@@ -6,7 +6,7 @@ import type { Appointment, GateVisit, MobileContext, Repair } from '../src/types
 
 const context: MobileContext = { role: 'tenant', email: 'a@example.test', properties: [{ id: 'p1', name: 'Building', timezone: 'UTC', units: ['204'] }] };
 test('Only supported roles and assigned apartments can report', () => {
-  assert.ok(isMobileRole('tenant')); assert.ok(isMobileRole('watchman')); assert.equal(isMobileRole('owner'), false);
+  assert.ok(isMobileRole('tenant')); assert.ok(isMobileRole('watchman')); assert.ok(isMobileRole('owner')); assert.ok(isMobileRole('unit_owner')); assert.ok(isMobileRole('operator')); assert.equal(isMobileRole('vendor'), false);
   assert.ok(canReport(context, 'p1', '204')); assert.equal(canReport(context, 'p1', '205'), false); assert.equal(canReport(context, 'p2'), false);
   assert.equal(canReport({ ...context, role: 'watchman' }, 'p1', '204'), false); assert.ok(canReport({ ...context, role: 'watchman' }, 'p1'));
 });

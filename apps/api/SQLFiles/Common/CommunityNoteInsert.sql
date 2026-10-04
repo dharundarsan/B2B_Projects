@@ -1,0 +1,1 @@
+INSERT INTO community_notes (id,workspace_id,property_id,revision,created_at,kind,title,body,user_id,assigned_user_id,status) VALUES (@Id,@WorkspaceId,@PropertyId,@Revision,@CreatedAt,@Kind,@Title,@Body,@UserId,@AssignedUserId,@Status);

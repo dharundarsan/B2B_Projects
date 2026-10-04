@@ -9,8 +9,8 @@ export const colors = { ink: '#142B35', muted: '#617279', bg: '#F3F6F4', paper: 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
 export const Icon = ({ name, size = 22, color = colors.ink }: { name: IconName; size?: number; color?: ColorValue }) => <Ionicons name={name} size={size} color={color} />;
 export function Screen({ children, refreshing = false, onRefresh }: { children: ReactNode; refreshing?: boolean; onRefresh?: () => void }) {
-  const { preview, error: accountError, refreshContext } = useAuth(); const { t } = useI18n();
-  return <SafeAreaView edges={['top', 'left', 'right']} style={s.safe}>
+  const { preview, context, error: accountError, refreshContext } = useAuth(); const { t } = useI18n();
+  return <SafeAreaView edges={context ? ['left','right'] : ['top','left','right']} style={s.safe}>
     {preview ? <View style={s.preview}><Text style={s.previewText}>{t('preview')}</Text></View> : null}
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={s.screen}

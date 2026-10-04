@@ -1,6 +1,8 @@
-# RepairLedger mobile app
+# CommunityHub mobile app
 
-React Native and TypeScript app for apartment residents and watchmen, built with Expo SDK 57. Maintenance data stays in the existing C# API and MySQL database. Supabase supplies authentication and private apartment-repair photos; its database is not used for maintenance records.
+React Native and TypeScript app for apartment administrators, residents, owners, operators and watchmen, built with Expo SDK 57. Maintenance data stays in the existing C# API and MySQL database. Supabase supplies authentication and private apartment-repair photos; its database is not used for maintenance records.
+
+The **Community** tab supports internal shops, resident selling and group buys, rent payment reporting/verification, owner and operator expenses, facility bookings, visitors, parcels, notices and watchman rounds. Administrators can switch between **User (1)** and **Admin (2)** views; the selected view is saved in the API's users table. Native Admin includes building/unit setup, parties, ownerships, leases, store/facility setup and rectangle-based floor editing/publication. Scoped `unit_owner` and `operator` accounts open Community first. Freehand polygons, Three.js visualization and private receipt attachments use the web portal. Apply migrations through **007** and provision account bindings as described in [the community guide](../../docs/COMMUNITY-PLATFORM.md). See [view permissions](../../docs/ADMIN-AND-USER-VIEWS.md) and [MFE/Vercel feasibility](../../docs/MOBILE-MFE-FEASIBILITY.md). The existing maintenance preview does not fabricate community permissions or financial transactions.
 
 This directory is deliberately separate from the root npm workspace. It uses React 19 without upgrading the existing React 18 web app. Install dependencies inside this directory.
 
@@ -21,7 +23,7 @@ The root also provides `npm run preview:mobile` after the mobile dependencies ar
 ## Connect to the real API
 
 1. Configure the existing API's MySQL connection, Supabase URL/public key, and private storage service-role key using [the repository setup guide](../../docs/SETUP.md). Preserve existing local settings. Set `Demo:Enabled=false` for real account testing; the development API otherwise uses a demo-owner identity and is not suitable for testing mobile roles.
-2. Back up an existing database and apply numbered migrations through **005** with `npm run db:migrate` from the repository root. Run `npm run db:check` afterwards. Migration 004 adds mobile tables; 005 adds resident bindings without resetting or guessing identities for existing records. Do not apply the final-schema snapshot to a populated database. Coordinate resident provisioning using [the privacy rollout guide](../../docs/RESIDENT-PRIVACY.md).
+2. Back up an existing database and apply numbered migrations through **007** with `npm run db:migrate` from the repository root. Run `npm run db:check` afterwards. Migration 004 adds mobile tables; 005 adds resident bindings; 006 adds community workflows; 007 adds the users view preference. Do not apply the final-schema snapshot to a populated database. Coordinate resident provisioning using [the privacy rollout guide](../../docs/RESIDENT-PRIVACY.md).
 3. Copy `.env.example` to `.env` **only if `.env` does not already exist**, then fill in the public API URL and Supabase URL/key. Never put the service-role key, MySQL password or other backend secrets in an `EXPO_PUBLIC_` variable.
 4. Have the apartment administrator assign the account metadata described below. Sign in using that provisioned account's email and password. No self-service account creation or role assignment is implemented in the mobile app.
 5. Start the API and run `npm start` in this directory. With `expo-dev-client` installed, Expo may default to a development build; use `npm run start:go` to explicitly use a matching Expo Go client. A development build is the intended production-development route.
@@ -85,7 +87,7 @@ For a watchman:
 }
 ```
 
-Replace examples with exact IDs and unit labels used by the landlord's API. IDs and labels are case-sensitive. A property's name is not its ID. The workspace ID must match the property's MySQL workspace. Unassigned accounts see a setup notice and cannot report into an arbitrary building. Owners/managers/vendors use the existing web app; watchmen signing into the web app see a mobile-app handoff instead of a manager-route loop.
+Replace examples with exact IDs and unit labels used by the landlord's API. IDs and labels are case-sensitive. A property's name is not its ID. The workspace ID must match the property's MySQL workspace. Unassigned accounts see a setup notice and cannot report into an arbitrary building. Owners/managers can use the native Community Admin and User views; vendors use the web app. Watchmen use their assigned gate/notices/map view on web or mobile.
 
 For residents, use a **new occupancy UUID for every period**, with actual start/end instants and explicit timezone offsets. Both the dated assignment and property/unit permissions are required. Missing, expired, future or ambiguous assignments fail closed. Private repairs require the same account, occupancy and report-date window; a matching unit never reveals a previous occupant's history. The illustrative dates/UUID above are not a provisioned account. See [the full provisioning/linking rules](../../docs/RESIDENT-PRIVACY.md). Watchmen do not need resident occupancy entries.
 
@@ -159,3 +161,9 @@ npm run export
 - Visitor registration, parcels, resident directory, society dues, emergency dispatch, push notifications and billing are future modules, not hidden implementations in this app.
 
 This setup guide is kept beside the source. No external Page, account or cloud project was created.
+
+## Management views and accounts
+
+User (1), Admin (2) and Seller / Provider (3) are selected in the fixed top-right profile menu. Ordinary members never receive an Admin option. Admins can create/edit/suspend accounts and assign buildings, tenant units and dated occupancies under People & access. Sellers manage their own products, orders, group buys and services; residents request services through User view.
+
+`metro.config.js` extends Expo defaults to watch framework-free shared contracts; native React 19 remains separate from web React 18. Keep repository-level `shared` source available to Expo/Vercel/EAS builds. Native bundle exports passed; live-device sign-in/keyboard/accessibility still need device verification. See [the revamp and rollout](../../docs/COMMUNITYHUB-REVAMP.md).

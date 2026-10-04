@@ -124,6 +124,78 @@ try {
     Assert-True ($storage.Status -eq 503 -and $storage.Json.message) 'unconfigured evidence fails honestly'
     $spec = Invoke-Api 'GET' '/openapi/v1.json'
     Assert-True ($spec.Status -eq 200 -and $spec.Json.paths.'/api/requests' -and $spec.Json.paths.'/api/properties/{id}/units' -and $spec.Json.paths.'/api/requests/{id}/resident-link') 'OpenAPI controllers, units and resident linking'
+    $community='/api/community/oak-street'
+    Assert-True ((Invoke-Api 'GET' '/api/community/context').Json.data.role -eq 'demo') 'community context'
+    $unit=(Invoke-Api 'GET' '/api/properties/oak-street/units').Json.data[0]
+    $party=(Invoke-Api 'POST' "$community/parties" @{name='Synthetic owner';kind='person';userId='demo-owner'}).Json.data
+    $op=(Invoke-Api 'POST' "$community/parties" @{name='Synthetic operator';kind='company';userId=[Guid]::NewGuid().ToString()}).Json.data
+    $from=[DateTime]::UtcNow.ToString('yyyy-MM')+'-01'; $until=[DateTime]::UtcNow.AddYears(1).ToString('yyyy-MM-dd')
+    Assert-True ((Invoke-Api 'POST' "$community/ownerships" @{unitId=$unit.id;partyId=$party.id;share=100;incomeShare=100;expenseShare=100;startsOn=$from;endsOn=$null}).Status -eq 200) 'ownership shares'
+    $agreement=(Invoke-Api 'POST' "$community/agreements" @{kind='master';creditorPartyId=$party.id;debtorPartyId=$op.id;unitIds=@($unit.id);startsOn=$from;endsOn=$until;rent=100.50;deposit=0;currency='INR';dueDay=5;parentId=$null;occupancyId=$null}).Json.data
+    Assert-True ($agreement.kind -eq 'master') 'master agreement binding'
+    Assert-True ((Invoke-Api 'POST' "$community/rent/generate" @{month=[DateTime]::UtcNow.ToString('yyyy-MM')}).Json.data.Count -eq 1) 'rent generation'
+    Assert-True ((Invoke-Api 'POST' "$community/rent/generate" @{month=[DateTime]::UtcNow.ToString('yyyy-MM')}).Json.data.Count -eq 0) 'rent generation idempotence'
+    $seller=(Invoke-Api 'POST' "$community/sellers" @{name='Lobby shop';kind='shop';pickup='Lobby';userId=$null}).Json.data
+    Assert-True ($seller.status -eq 'approved') 'internal seller registration'
+    $product=(Invoke-Api 'POST' "$community/products" @{sellerId=$seller.id;name='Rice';description='';kind='grocery';ingredients='';allergens='';price=10;currency='INR';stock=3;status='active'}).Json.data
+    Assert-True ($product.stock -eq 3) 'catalog listing'
+    $orderBody=@{productId=$product.id;quantity=1;submissionId=[Guid]::NewGuid().ToString()}
+    $order=(Invoke-Api 'POST' "$community/orders" $orderBody).Json.data
+    Assert-True ($order.status -eq 'placed' -and $order.paymentStatus -eq 'unpaid') 'stock reservation order'
+    Assert-True ((Invoke-Api 'POST' "$community/orders" $orderBody).Json.data.id -eq $order.id) 'order retry idempotence'
+    Assert-True ((Invoke-Api 'POST' "$community/orders" @{productId=$product.id;quantity=3;submissionId=[Guid]::NewGuid().ToString()}).Status -eq 409) 'overselling blocked'
+    Assert-True ((Invoke-Api 'POST' "$community/orders/$($order.id)/actions" @{action='accept';revision=0}).Json.data.status -eq 'accepted') 'seller order acceptance'
+    Assert-True ((Invoke-Api 'POST' "$community/orders/$($order.id)/actions" @{action='ready';revision=0}).Status -eq 409) 'order revision conflict'
+    $group=(Invoke-Api 'POST' "$community/groups" @{productId=$product.id;unitPrice=8;minimum=2;maximum=5;closesAt=[DateTimeOffset]::UtcNow.AddMinutes(5).ToString('O');pickup='Lobby tomorrow'}).Json.data
+    Assert-True ($group.status -eq 'open') 'group creation'
+    Assert-True ((Invoke-Api 'POST' "$community/groups/$($group.id)/pledge" @{quantity=2;revision=0}).Json.data.committed -eq 2) 'group commitment'
+    Assert-True ((Invoke-Api 'POST' "$community/groups/$($group.id)/actions" @{action='finalize';revision=1}).Status -eq 409) 'group deadline enforced'
+    $facility=(Invoke-Api 'POST' "$community/facilities" @{name='Hall';capacity=1;slotMinutes=60;price=0;currency='INR';rules='Leave clean'}).Json.data
+    $booking=(Invoke-Api 'POST' "$community/bookings" @{facilityId=$facility.id;startsAt=[DateTimeOffset]::UtcNow.AddHours(1).ToString('O');submissionId=[Guid]::NewGuid().ToString()}).Json.data
+    Assert-True ($booking.status -eq 'confirmed') 'facility reservation'
+    Assert-True ((Invoke-Api 'POST' "$community/bookings/$($booking.id)/actions" @{action='cancel';revision=0}).Json.data.status -eq 'cancelled') 'facility cancellation'
+    $shape=@{id=[Guid]::NewGuid().ToString();kind='flat';label=$unit.label;unitId=$unit.id;points=@(@{x=10;y=10},@{x=100;y=10},@{x=100;y=100},@{x=10;y=100})}
+    $floor=(Invoke-Api 'POST' "$community/layouts" @{floor=0;name='Ground';shapes=@($shape);revision=0}).Json.data
+    Assert-True ($floor.shapes.Count -eq 1) 'floor sketch draft'
+    Assert-True ((Invoke-Api 'POST' "$community/layouts/$($floor.id)/actions" @{action='publish';revision=0}).Json.data.publishedAt) 'floor publication'
+    Assert-True ((Invoke-Api 'POST' "$community/notes" @{kind='shift';title='Desk handover';body='All arrivals recorded';assignedUserId=$null}).Json.data.status -eq 'posted') 'watchman handover note'
+    $view=(Invoke-Api 'GET' '/api/user/context').Json.data
+    Assert-True ($view.userContext -eq 2 -and $view.canSwitchContext) 'admin context default'
+    $mobileView=(Invoke-Api 'GET' '/api/mobile/context').Json.data
+    Assert-True ($mobileView.userContext -eq 2 -and $mobileView.canSwitchContext) 'mobile admin context available'
+    $view=(Invoke-Api 'PATCH' '/api/user/context' @{userContext=1;revision=$view.revision}).Json.data
+    Assert-True ($view.userContext -eq 1) 'switch to user context'
+    $mobileView=(Invoke-Api 'GET' '/api/mobile/context').Json.data
+    Assert-True ($mobileView.userContext -eq 1 -and $mobileView.canSwitchContext) 'mobile shares persisted user context'
+    Assert-True (!(Invoke-Api 'GET' $community).Json.data.canManage) 'user view removes manager capability'
+    Assert-True ((Invoke-Api 'POST' "$community/facilities" @{name='Forbidden';capacity=1;slotMinutes=60;price=0;currency='INR';rules=''}).Status -eq 403) 'user context blocks admin mutation'
+    Assert-True ((Invoke-Api 'GET' '/api/user/context').Json.data.userContext -eq 1) 'user context persists across requests'
+    Assert-True ((Invoke-Api 'PATCH' '/api/user/context' @{userContext=2;revision=0}).Status -eq 409) 'stale view switch blocked'
+    Assert-True ((Invoke-Api 'PATCH' '/api/user/context' @{userContext=2;revision=$view.revision}).Json.data.userContext -eq 2) 'switch back to admin context'
+    Assert-True ((Invoke-Api 'GET' $community).Json.data.canManage) 'admin capability restored'
+    $directory=(Invoke-Api 'GET' '/api/admin/users').Json.data
+    Assert-True ($directory.users.Count -ge 1) 'admin member directory'
+    $person=Invoke-Api 'POST' '/api/admin/users' @{displayName='Synthetic member';email='synthetic-member@example.test';role='member';allowUser=$true;allowAdmin=$false;allowSeller=$true;defaultContext=1;memberships=@(@{propertyId='oak-street'});password='Synthetic-Password-123'}
+    Assert-True ($person.Status -eq 200 -and !$person.Json.data.allowAdmin -and $person.Json.data.allowSeller) 'synthetic managed account and view permissions'
+    $person=$person.Json.data
+    Assert-True ((Invoke-Api 'PATCH' "/api/admin/users/$($person.userId)" @{displayName='Synthetic member updated';email=$person.email;role='member';allowUser=$true;allowAdmin=$false;allowSeller=$false;defaultContext=1;memberships=@(@{propertyId='oak-street'});revision=$person.revision}).Status -eq 200) 'managed account editing'
+    Assert-True ((Invoke-Api 'POST' "/api/admin/users/$($person.userId)/status" @{action='suspend';revision=0}).Status -eq 409) 'stale account suspension blocked'
+    Assert-True ((Invoke-Api 'POST' "/api/admin/users/$($person.userId)/status" @{action='suspend';revision=1}).Status -eq 200) 'account suspension'
+    $service=(Invoke-Api 'POST' "$community/services" @{sellerId=$seller.id;name='Home help';category='Home';description='Household assistance';price=200;currency='INR';priceUnit='visit';status='active'}).Json.data
+    Assert-True ($service.name -eq 'Home help') 'provider service catalogue'
+    $requestBody=@{serviceId=$service.id;description='Synthetic service request';preferredAt=[DateTimeOffset]::UtcNow.AddDays(1).ToString('O');submissionId=[Guid]::NewGuid().ToString()}
+    $serviceRequest=(Invoke-Api 'POST' "$community/service-requests" $requestBody).Json.data
+    Assert-True ($serviceRequest.status -eq 'requested') 'service request submission'
+    Assert-True ((Invoke-Api 'POST' "$community/service-requests" $requestBody).Json.data.id -eq $serviceRequest.id) 'service request retry idempotence'
+    Assert-True ((Invoke-Api 'POST' "$community/service-requests/$($serviceRequest.id)/actions" @{action='accept';revision=0}).Json.data.status -eq 'accepted') 'provider accepts request'
+    Assert-True ((Invoke-Api 'POST' "$community/service-requests/$($serviceRequest.id)/actions" @{action='complete';revision=1}).Json.data.status -eq 'completed') 'provider completes request'
+    $view=(Invoke-Api 'GET' '/api/user/context').Json.data
+    $view=(Invoke-Api 'PATCH' '/api/user/context' @{userContext=3;revision=$view.revision}).Json.data
+    Assert-True ($view.userContext -eq 3 -and $view.availableContexts.Count -eq 3) 'third view enabled for admin'
+    Assert-True ((Invoke-Api 'GET' '/api/mobile/context').Json.data.userContext -eq 3) 'mobile provider view shares selection'
+    Assert-True ((Invoke-Api 'GET' '/api/admin/users').Status -eq 403) 'provider view cannot enter admin directory'
+    Assert-True ((Invoke-Api 'POST' "$community/orders" @{productId=$product.id;quantity=1;submissionId=[Guid]::NewGuid().ToString()}).Status -eq 403) 'provider view cannot buy'
+    Assert-True ((Invoke-Api 'PATCH' '/api/user/context' @{userContext=2;revision=$view.revision}).Json.data.userContext -eq 2) 'return to admin home context'
     $passed = $true
     Write-Output "HTTP smoke passed: $script:checks checks. No real user database was used."
 }

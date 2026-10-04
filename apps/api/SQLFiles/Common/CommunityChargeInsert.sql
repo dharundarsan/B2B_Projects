@@ -1,0 +1,1 @@
+INSERT INTO community_charges (id,workspace_id,property_id,revision,created_at,agreement_id,kind,period,due_on,amount,currency) VALUES (@Id,@WorkspaceId,@PropertyId,@Revision,@CreatedAt,@AgreementId,@Kind,@Period,@DueOn,@Amount,@Currency);

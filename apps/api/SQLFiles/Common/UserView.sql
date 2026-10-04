@@ -1,0 +1,1 @@
+SELECT u.*,CASE WHEN EXISTS(SELECT 1 FROM community_sellers s WHERE s.workspace_id=u.workspace_id AND s.user_id=u.user_id AND s.status!='rejected') THEN 1 ELSE 0 END AS has_store FROM users u WHERE u.workspace_id=@workspace AND u.user_id=@user;

@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 namespace RepairLedger.Api.Models;
 
-public sealed record MobileContext(string Role, string Email, List<MobileProperty> Properties);
+public sealed record MobileContext(string Role, string Email, List<MobileProperty> Properties, int UserContext = 1, bool CanSwitchContext = false, int[]? AvailableContexts = null, string DisplayName = "");
 public sealed class MobileProperty
 {
     public string Id { get; set; } = "";

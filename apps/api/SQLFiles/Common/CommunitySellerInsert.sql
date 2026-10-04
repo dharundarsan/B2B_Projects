@@ -1,0 +1,1 @@
+INSERT INTO community_sellers (id,workspace_id,property_id,revision,created_at,user_id,name,kind,status,pickup) VALUES (@Id,@WorkspaceId,@PropertyId,@Revision,@CreatedAt,@UserId,@Name,@Kind,@Status,@Pickup);

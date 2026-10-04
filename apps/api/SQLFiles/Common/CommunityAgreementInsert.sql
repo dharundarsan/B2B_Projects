@@ -1,0 +1,1 @@
+INSERT INTO community_agreements (id,workspace_id,property_id,revision,created_at,kind,debtor_party_id,creditor_party_id,parent_id,occupancy_id,starts_on,ends_on,rent,deposit,currency,due_day,status) VALUES (@Id,@WorkspaceId,@PropertyId,@Revision,@CreatedAt,@Kind,@DebtorPartyId,@CreditorPartyId,@ParentId,@OccupancyId,@StartsOn,@EndsOn,@Rent,@Deposit,@Currency,@DueDay,@Status);

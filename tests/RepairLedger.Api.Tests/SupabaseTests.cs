@@ -41,6 +41,33 @@ public sealed class SupabaseTests
         Assert.Single(actor.PropertyUnits); Assert.Equal("3B", actor.PropertyUnits["allowed"].Single()); Assert.False(actor.IsManager);
     }
     [Fact]
+    public async Task Missing_role_metadata_never_creates_an_administrator()
+    {
+        using var client=new HttpClient(new Handler("""{"id":"unassigned","email":"new@example.test","user_metadata":{"role":"owner"}}"""));
+        var actor=await new SupabaseIdentity(client,Config(),new WorkflowTests.TestEnvironment{EnvironmentName="Production"}).Authenticate(Context());
+        Assert.Equal("member",actor.Role);Assert.False(actor.IsManager);Assert.Empty(actor.PropertyUnits);
+    }
+    private sealed class AdminHandler:HttpMessageHandler
+    {
+        public string? Payload;public string? Authorization;public string? Path;
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken ct)
+        {
+            Payload=await request.Content!.ReadAsStringAsync(ct);Authorization=request.Headers.Authorization?.ToString();Path=request.RequestUri!.AbsolutePath;
+            return new(HttpStatusCode.OK){Content=new StringContent("""{"id":"12345678-1234-4234-8234-123456789abc"}""",Encoding.UTF8,"application/json")};
+        }
+    }
+    [Fact]
+    public async Task Account_creation_uses_server_auth_admin_and_trusted_workspace_metadata_without_invitation_email()
+    {
+        var handler=new AdminHandler();using var client=new HttpClient(handler);
+        var actor=new Actor("admin","real-workspace","manager","admin@example.test",null,[]);
+        var input=new ManagedUserInput("New member","new@example.test","member",true,false,true,1,[],"test-password-123");
+        var id=await new SupabaseAdmin(client,Config(),new WorkflowTests.TestEnvironment{EnvironmentName="Production"}).Create(actor,input,default);
+        Assert.Equal("12345678-1234-4234-8234-123456789abc",id);Assert.Equal("/auth/v1/admin/users",handler.Path);Assert.Equal("Bearer test-private",handler.Authorization);
+        var body=System.Text.Json.Nodes.JsonNode.Parse(handler.Payload!);Assert.Equal("member",body!["app_metadata"]!["role"]!.GetValue<string>());Assert.Equal(actor.WorkspaceId,body["app_metadata"]!["workspace_id"]!.GetValue<string>());
+        Assert.True(body["email_confirm"]!.GetValue<bool>());Assert.DoesNotContain("invite",handler.Path!);
+    }
+    [Fact]
     public async Task Watchman_buildings_come_only_from_verified_app_metadata()
     {
         using var client = new HttpClient(new Handler("""

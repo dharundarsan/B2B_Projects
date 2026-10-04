@@ -1,6 +1,6 @@
 import type { Appointment, GateVisit, MobileContext, MobileRole, Repair } from '../types';
 
-export const isMobileRole = (role: string): role is MobileRole => role === 'tenant' || role === 'watchman';
+export const isMobileRole = (role: string): role is MobileRole | 'unit_owner' | 'operator' | 'owner' | 'manager' | 'member' => ['tenant','watchman','unit_owner','operator','owner','manager','member'].includes(role);
 export const isOpen = (repair: Repair) => !['closed', 'cancelled'].includes(repair.state);
 export function canReport(context: MobileContext | null, propertyId: string, unit?: string): boolean {
   if (!context || !isMobileRole(context.role)) return false;

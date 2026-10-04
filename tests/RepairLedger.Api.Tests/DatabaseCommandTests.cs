@@ -44,10 +44,10 @@ public sealed class DatabaseCommandTests
     }
 
     [Theory]
-    [InlineData(5, true, true, true, true, true)]
+    [InlineData(9, true, true, true, true, true)]
     [InlineData(-1, true, true, true, true, false)]
     [InlineData(2, true, true, true, true, false)]
-    [InlineData(6, true, true, true, true, false)]
+    [InlineData(10, true, true, true, true, false)]
     [InlineData(4, true, true, true, true, false)]
     [InlineData(3, true, true, true, true, false)]
     [InlineData(5, false, true, true, true, false)]

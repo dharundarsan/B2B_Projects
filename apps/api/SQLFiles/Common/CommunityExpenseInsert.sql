@@ -1,0 +1,1 @@
+INSERT INTO community_expenses (id,workspace_id,property_id,revision,created_at,scope,unit_id,party_id,category,description,amount,currency,incurred_on,paid_status,user_id) VALUES (@Id,@WorkspaceId,@PropertyId,@Revision,@CreatedAt,@Scope,@UnitId,@PartyId,@Category,@Description,@Amount,@Currency,@IncurredOn,@PaidStatus,@UserId);

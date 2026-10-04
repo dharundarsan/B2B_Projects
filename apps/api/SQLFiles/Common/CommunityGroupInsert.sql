@@ -1,0 +1,1 @@
+INSERT INTO community_groups (id,workspace_id,property_id,revision,created_at,product_id,seller_id,unit_price,currency,minimum,maximum,closes_at,pickup,status) VALUES (@Id,@WorkspaceId,@PropertyId,@Revision,@CreatedAt,@ProductId,@SellerId,@UnitPrice,@Currency,@Minimum,@Maximum,@ClosesAt,@Pickup,@Status);
